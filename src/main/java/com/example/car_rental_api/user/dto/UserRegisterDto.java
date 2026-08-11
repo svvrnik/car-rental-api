@@ -1,9 +1,19 @@
 package com.example.car_rental_api.user.dto;
 
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+
 public class UserRegisterDto {
+    @NotBlank(message = "E-mail can't be empty")
+    @Email(message = "Incorrect e-mail address format")
     private String email;
+    @NotBlank(message = "Password can't be empty")
+    @Size(min = 8, message = "Password must be at least 8 characters long")
     private String password;
+    @NotBlank(message = "First name can't be empty")
     private String firstName;
+    @NotBlank(message = "Last name can't be empty")
     private String lastName;
 
     public String getEmail() {
