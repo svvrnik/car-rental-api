@@ -7,6 +7,8 @@ import com.example.car_rental_api.user.UserRepository;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 public class CarService {
     private final CarRepository carRepository;
@@ -44,5 +46,21 @@ public class CarService {
         responseDto.setStatus(savedCar.getStatus());
 
         return responseDto;
+    }
+
+    public List<CarResponseDto> getAvailableCars(){
+        return carRepository.findByStatus(CarStatus.AVAILABLE).stream()
+                .map(car -> {
+                    CarResponseDto responseDto = new CarResponseDto();
+
+                    responseDto.setId(car.getId());
+                    responseDto.setBrand(car.getBrand());
+                    responseDto.setLicensePlate(car.getLicensePlate());
+                    responseDto.setModel(car.getModel());
+                    responseDto.setPricePerDay(car.getPricePerDay());
+                    responseDto.setStatus(car.getStatus());
+
+                    return responseDto;
+                }).toList();
     }
 }

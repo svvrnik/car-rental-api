@@ -19,6 +19,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 import javax.swing.text.html.Option;
+import java.util.List;
 import java.util.Optional;
 
 @ExtendWith(MockitoExtension.class)
@@ -97,5 +98,18 @@ public class CarServiceTest {
         });
 
         Mockito.verify(carRepository, Mockito.never()).save(Mockito.any(Car.class));
+    }
+
+    @Test
+    void getAvailableCarsShouldReturnListOfCarsWithAvailableStatus(){
+        Car mockCar = new Car();
+        mockCar.setId(1L);
+        mockCar.setStatus(CarStatus.AVAILABLE);
+
+        Mockito.when(carRepository.findByStatus(CarStatus.AVAILABLE)).thenReturn(List.of(mockCar));
+
+        List<CarResponseDto> result = carService.getAvailableCars();
+
+        Assertions.assertEquals(1, result.size());
     }
 }

@@ -8,6 +8,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/cars")
 public class CarController {
@@ -22,5 +24,11 @@ public class CarController {
     public ResponseEntity<CarResponseDto> addCar(@RequestHeader("X-User-Id") Long ownerId, @RequestBody @Valid CarRequestDto carRequestDto){
         CarResponseDto carResponseDto = carService.addCar(carRequestDto,ownerId);
         return ResponseEntity.status(HttpStatus.CREATED).body(carResponseDto);
+    }
+
+    @GetMapping("/available")
+    public ResponseEntity<List<CarResponseDto>> getAvailableCars(){
+        List<CarResponseDto> availableCars = carService.getAvailableCars();
+        return ResponseEntity.status(HttpStatus.OK).body(availableCars);
     }
 }
