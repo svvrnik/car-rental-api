@@ -91,4 +91,9 @@ public class User {
     public void setUserCars(List<Car> userCars) {
         this.userCars = userCars;
     }
+
+    public void addCar(Car car){
+        userCars.add(car);
+        car.setOwner(this);
+    }
 }
