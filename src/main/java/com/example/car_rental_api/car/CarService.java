@@ -18,6 +18,7 @@ public class CarService {
 
     public CarResponseDto addCar(CarRequestDto carRequestDto, Long ownerId){
         //TODO: find user by e-mail, not by id (will be added while configuring Spring Security)
+        //TODO: verification by JWT token
         User foundUser = userRepository.findById(ownerId).orElseThrow(() -> new UsernameNotFoundException("User not found"));
         Car createdCar = new Car();
 
