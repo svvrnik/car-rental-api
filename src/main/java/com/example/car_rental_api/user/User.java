@@ -4,6 +4,7 @@ import com.example.car_rental_api.car.Car;
 import jakarta.persistence.*;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -26,7 +27,7 @@ public class User {
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal accountBalance;
     @OneToMany(mappedBy = "owner")
-    private List<Car> userCars;
+    private List<Car> userCars = new ArrayList<>();
 
     public Long getId() {
         return id;
