@@ -54,12 +54,12 @@ public class Car {
         this.licensePlate = licensePlate;
     }
 
-    public Long getOwnerId() {
-        return ownerId;
+    public User getOwner() {
+        return owner;
     }
 
-    public void setOwnerId(Long ownerId) {
-        this.ownerId = ownerId;
+    public void setOwner(User owner) {
+        this.owner = owner;
     }
 
     public CarStatus getStatus() {
