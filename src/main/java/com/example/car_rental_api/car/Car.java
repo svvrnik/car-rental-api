@@ -1,5 +1,6 @@
 package com.example.car_rental_api.car;
 
+import com.example.car_rental_api.user.User;
 import jakarta.persistence.*;
 
 import java.math.BigDecimal;
@@ -16,10 +17,13 @@ public class Car {
     private String model;
     @Column(unique = true, nullable = false)
     private String licensePlate;
+    @ManyToOne
+    @JoinColumn(name = "owner_id")
     private User owner;
     @Enumerated(EnumType.STRING)
-    private CarStatus status;
     @Column(nullable = false)
+    private CarStatus status;
+    @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal pricePerDay;
 
     public Long getId() {
