@@ -51,6 +51,12 @@ public class CarService {
                 .map(carMapper::carToCarResponseDto).toList();
     }
 
+    public List<CarResponseDto> getUserCars(){
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+
+        return carRepository.findByOwnerEmail(email).stream().map(carMapper::carToCarResponseDto).toList();
+    }
+
     @PreAuthorize("hasRole('ADMIN')")
     public CarResponseDto approveCar(Long carId){
         Car foundCar = carRepository.findById(carId).orElseThrow(() -> new EntityNotFoundException("Car not found"));

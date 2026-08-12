@@ -4,6 +4,7 @@ package com.example.car_rental_api.car;
 import com.example.car_rental_api.car.dto.CarRequestDto;
 import com.example.car_rental_api.car.dto.CarResponseDto;
 import jakarta.validation.Valid;
+import org.apache.coyote.Response;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -24,6 +25,12 @@ public class CarController {
     public ResponseEntity<CarResponseDto> addCar(@RequestBody @Valid CarRequestDto carRequestDto){
         CarResponseDto carResponseDto = carService.addCar(carRequestDto);
         return ResponseEntity.status(HttpStatus.CREATED).body(carResponseDto);
+    }
+
+    @GetMapping("/my-cars")
+    public ResponseEntity<List<CarResponseDto>> getUserCars(){
+        List<CarResponseDto> userCars = carService.getUserCars();
+        return ResponseEntity.status(HttpStatus.OK).body(userCars);
     }
 
     @GetMapping("/available")

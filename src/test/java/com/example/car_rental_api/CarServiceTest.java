@@ -298,4 +298,24 @@ public class CarServiceTest {
         });
         Mockito.verify(carRepository, Mockito.never()).save(Mockito.any(Car.class));
     }
+    @Test
+    void getUserCarsShouldReturnListOfCarsForLoggedUsers(){
+        Authentication authentication = Mockito.mock(Authentication.class);
+        SecurityContext securityContext = Mockito.mock(SecurityContext.class);
+        Mockito.when(securityContext.getAuthentication()).thenReturn(authentication);
+        Mockito.when(authentication.getName()).thenReturn("test@test.com");
+        SecurityContextHolder.setContext(securityContext);
+
+        Car mockCar = new Car();
+        mockCar.setId(1L);
+
+        Mockito.when(carRepository.findByOwnerEmail("test@test.com")).thenReturn(List.of(mockCar));
+        Mockito.when(carMapper.carToCarResponseDto(Mockito.any(Car.class))).thenReturn(new CarResponseDto());
+
+        List<CarResponseDto> result = carService.getUserCars();
+
+        Assertions.assertNotNull(result);
+        Assertions.assertEquals(1, result.size());
+        Mockito.verify(carRepository, Mockito.times(1)).findByOwnerEmail("test@test.com");
+    }
 }

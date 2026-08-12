@@ -8,4 +8,6 @@ public interface CarRepository extends JpaRepository<Car, Long> {
     boolean existsByLicensePlate(String licensePlate);
 
     List<Car> findByStatus(CarStatus status);
+
+    List<Car> findByOwnerEmail(String email);
 }
