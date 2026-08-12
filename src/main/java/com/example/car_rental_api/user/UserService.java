@@ -1,6 +1,7 @@
 package com.example.car_rental_api.user;
 
 import com.example.car_rental_api.user.dto.UserRegisterDto;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -8,9 +9,11 @@ import java.math.BigDecimal;
 @Service
 public class UserService {
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    public UserService(UserRepository userRepository) {
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     public void registerUser(UserRegisterDto userRegisterDto){
@@ -21,7 +24,7 @@ public class UserService {
         createdUser.setEmail(userRegisterDto.getEmail());
         createdUser.setFirstName(userRegisterDto.getFirstName());
         createdUser.setLastName(userRegisterDto.getLastName());
-        createdUser.setPassword(userRegisterDto.getPassword()); //TODO: add passwordEncoder.encode()
+        createdUser.setPassword(passwordEncoder.encode(userRegisterDto.getPassword()));
         createdUser.setRole(Role.USER);
         createdUser.setAccountBalance(BigDecimal.ZERO);
 
