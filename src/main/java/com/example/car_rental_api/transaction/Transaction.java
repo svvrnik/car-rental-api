@@ -24,7 +24,7 @@ public class Transaction {
     @Column(nullable = false)
     private TransactionType type;
     @Column(nullable = false)
-    private LocalDateTime createdAt;
+    private LocalDateTime createdAt = LocalDateTime.now();
 
     public Long getId() {
         return id;

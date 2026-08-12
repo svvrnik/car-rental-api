@@ -1,13 +1,13 @@
 package com.example.car_rental_api.user;
 
+import com.example.car_rental_api.user.dto.FundRequestDto;
 import com.example.car_rental_api.user.dto.UserRegisterDto;
+import com.example.car_rental_api.user.dto.UserResponseDto;
 import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/users")
@@ -19,8 +19,20 @@ public class UserController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<Void> registerUser(@RequestBody @Valid UserRegisterDto userRegisterDto){
+    public ResponseEntity<UserResponseDto> registerUser(@RequestBody @Valid UserRegisterDto userRegisterDto){
         userService.registerUser(userRegisterDto);
         return ResponseEntity.status(HttpStatus.CREATED).build();
+    }
+
+    @PatchMapping("/add-funds")
+    public ResponseEntity<UserResponseDto> addFunds(@RequestBody @Valid FundRequestDto fundRequestDto){
+        UserResponseDto response = userService.addFunds(fundRequestDto);
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
+    @PatchMapping("/withdraw-funds")
+    public ResponseEntity<UserResponseDto> withdrawfunds(@RequestBody @Valid FundRequestDto fundRequestDto){
+        UserResponseDto response = userService.withdrawFunds(fundRequestDto);
+        return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 }

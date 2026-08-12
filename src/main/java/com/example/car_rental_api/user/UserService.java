@@ -1,6 +1,13 @@
 package com.example.car_rental_api.user;
 
+import com.example.car_rental_api.transaction.TransactionService;
+import com.example.car_rental_api.transaction.TransactionType;
+import com.example.car_rental_api.user.dto.FundRequestDto;
 import com.example.car_rental_api.user.dto.UserRegisterDto;
+import com.example.car_rental_api.user.dto.UserResponseDto;
+import com.example.car_rental_api.user.mapper.UserMapper;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -10,13 +17,17 @@ import java.math.BigDecimal;
 public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final TransactionService transactionService;
+    private final UserMapper userMapper;
 
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, TransactionService transactionService, UserMapper userMapper) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.transactionService = transactionService;
+        this.userMapper = userMapper;
     }
 
-    public void registerUser(UserRegisterDto userRegisterDto){
+    public UserResponseDto registerUser(UserRegisterDto userRegisterDto){
         User createdUser = new User();
         if(userRepository.existsByEmail(userRegisterDto.getEmail())){
             throw new IllegalArgumentException("User with this e-mail address exists.");
@@ -28,6 +39,35 @@ public class UserService {
         createdUser.setRole(Role.USER);
         createdUser.setAccountBalance(BigDecimal.ZERO);
 
-        userRepository.save(createdUser);
+        User savedUser = userRepository.save(createdUser);
+        return userMapper.userToUserResponseDto(savedUser);
+    }
+
+    public UserResponseDto addFunds(FundRequestDto fundRequestDto){
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        User foundUser = userRepository.findByEmail(email).orElseThrow(() ->  new UsernameNotFoundException("User not found"));
+
+        foundUser.setAccountBalance(foundUser.getAccountBalance().add(fundRequestDto.getAmount()));
+        User savedUser = userRepository.save(foundUser);
+
+        transactionService.createTransaction(null, foundUser, fundRequestDto.getAmount(), TransactionType.DEPOSIT);
+
+        return userMapper.userToUserResponseDto(savedUser);
+    }
+
+    public UserResponseDto withdrawFunds(FundRequestDto fundRequestDto){
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        User foundUser = userRepository.findByEmail(email).orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+        if(foundUser.getAccountBalance().compareTo(fundRequestDto.getAmount())<0){
+            throw new IllegalArgumentException("Insufficient funds");
+        }
+
+        foundUser.setAccountBalance(foundUser.getAccountBalance().subtract(fundRequestDto.getAmount()));
+        User savedUser = userRepository.save(foundUser);
+
+        transactionService.createTransaction(foundUser, null, fundRequestDto.getAmount(), TransactionType.PAYOUT);
+
+        return userMapper.userToUserResponseDto(savedUser);
     }
 }
