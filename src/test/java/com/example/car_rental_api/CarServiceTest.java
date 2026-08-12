@@ -6,7 +6,7 @@ import com.example.car_rental_api.car.CarService;
 import com.example.car_rental_api.car.CarStatus;
 import com.example.car_rental_api.car.dto.CarRequestDto;
 import com.example.car_rental_api.car.dto.CarResponseDto;
-import com.example.car_rental_api.user.Role;
+import com.example.car_rental_api.car.mapper.CarMapper;
 import com.example.car_rental_api.user.User;
 import com.example.car_rental_api.user.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
@@ -22,7 +22,6 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
-import javax.swing.text.html.Option;
 import java.util.List;
 import java.util.Optional;
 
@@ -32,6 +31,8 @@ public class CarServiceTest {
     private CarRepository carRepository;
     @Mock
     private UserRepository userRepository;
+    @Mock
+    private CarMapper carMapper;
     @InjectMocks
     private CarService carService;
 
@@ -59,6 +60,7 @@ public class CarServiceTest {
         savedCar.setModel("testModel");
         savedCar.setStatus(CarStatus.PENDING);
 
+        Mockito.when(carMapper.carRequestDtoToCar(Mockito.any(CarRequestDto.class))).thenReturn(savedCar);
 
         Mockito.when(userRepository.findByEmail("test@test.com")).thenReturn(Optional.of(mockUser));
 
@@ -66,7 +68,9 @@ public class CarServiceTest {
 
         Mockito.when(carRepository.save(Mockito.any(Car.class))).thenReturn(savedCar);
 
-
+        CarResponseDto expectedResponse = new CarResponseDto();
+        expectedResponse.setId(1L);
+        Mockito.when(carMapper.carToCarResponseDto(Mockito.any(Car.class))).thenReturn(expectedResponse);
 
         CarResponseDto result = carService.addCar(testCarToAdd);
 
@@ -133,6 +137,8 @@ public class CarServiceTest {
 
         Mockito.when(carRepository.findByStatus(CarStatus.AVAILABLE)).thenReturn(List.of(mockCar));
 
+        Mockito.when(carMapper.carToCarResponseDto(Mockito.any(Car.class))).thenReturn(new CarResponseDto());
+
         List<CarResponseDto> result = carService.getAvailableCars();
 
         Assertions.assertEquals(1, result.size());
@@ -146,10 +152,15 @@ public class CarServiceTest {
 
         Mockito.when(carRepository.findById(1L)).thenReturn(Optional.of(mockCar));
 
-        carService.approveCar(1L);
+        Mockito.when(carMapper.carToCarResponseDto(Mockito.any(Car.class))).thenReturn(new CarResponseDto());
+
+        Mockito.when(carRepository.save(Mockito.any(Car.class))).thenReturn(mockCar);
+
+        CarResponseDto result = carService.approveCar(1L);
 
         Mockito.verify(carRepository, Mockito.times(1)).save(Mockito.any(Car.class));
         Assertions.assertEquals(CarStatus.AVAILABLE, mockCar.getStatus());
+        Assertions.assertNotNull(result);
     }
 
     @Test
@@ -171,10 +182,15 @@ public class CarServiceTest {
 
         Mockito.when(carRepository.findById(1L)).thenReturn(Optional.of(mockCar));
 
-        carService.rejectCar(1L);
+        Mockito.when(carMapper.carToCarResponseDto(Mockito.any(Car.class))).thenReturn(new CarResponseDto());
+
+        Mockito.when(carRepository.save(Mockito.any(Car.class))).thenReturn(mockCar);
+
+        CarResponseDto result = carService.rejectCar(1L);
 
         Mockito.verify(carRepository, Mockito.times(1)).save(Mockito.any(Car.class));
         Assertions.assertEquals(CarStatus.REJECTED, mockCar.getStatus());
+        Assertions.assertNotNull(result);
     }
 
     @Test
@@ -205,11 +221,16 @@ public class CarServiceTest {
         mockCar.setOwner(mockUser);
         mockCar.setId(1L);
 
+        Mockito.when(carMapper.carToCarResponseDto(Mockito.any(Car.class))).thenReturn(new CarResponseDto());
+
+        Mockito.when(carRepository.save(Mockito.any(Car.class))).thenReturn(mockCar);
+
         Mockito.when(carRepository.findById(1L)).thenReturn(Optional.of(mockCar));
-        carService.withdrawCar(1L);
+        CarResponseDto result = carService.withdrawCar(1L);
 
         Mockito.verify(carRepository, Mockito.times(1)).save(Mockito.any(Car.class));
         Assertions.assertEquals(CarStatus.UNAVAILABLE, mockCar.getStatus());
+        Assertions.assertNotNull(result);
     }
 
     @Test
