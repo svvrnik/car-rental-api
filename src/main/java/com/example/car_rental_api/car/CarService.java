@@ -2,6 +2,7 @@ package com.example.car_rental_api.car;
 
 import com.example.car_rental_api.car.dto.CarRequestDto;
 import com.example.car_rental_api.car.dto.CarResponseDto;
+import com.example.car_rental_api.car.mapper.CarMapper;
 import com.example.car_rental_api.user.Role;
 import com.example.car_rental_api.user.User;
 import com.example.car_rental_api.user.UserRepository;
@@ -18,24 +19,21 @@ import java.util.List;
 public class CarService {
     private final CarRepository carRepository;
     private final UserRepository userRepository;
-    public CarService(CarRepository carRepository, UserRepository userRepository) {
+    private final CarMapper carMapper;
+    public CarService(CarRepository carRepository, UserRepository userRepository, CarMapper carMapper) {
         this.carRepository = carRepository;
         this.userRepository = userRepository;
+        this.carMapper = carMapper;
     }
 
     public CarResponseDto addCar(CarRequestDto carRequestDto){
         String emailOfLoggedInUser = SecurityContextHolder.getContext().getAuthentication().getName();
         User foundUser = userRepository.findByEmail(emailOfLoggedInUser).orElseThrow(() -> new UsernameNotFoundException("User not found"));
-        Car createdCar = new Car();
 
         if(carRepository.existsByLicensePlate(carRequestDto.getLicensePlate())){
             throw new IllegalArgumentException("Car with this license plate exists.");
         }
-
-        createdCar.setBrand(carRequestDto.getBrand());
-        createdCar.setModel(carRequestDto.getModel());
-        createdCar.setLicensePlate(carRequestDto.getLicensePlate());
-        createdCar.setPricePerDay(carRequestDto.getPricePerDay());
+        Car createdCar = carMapper.carRequestDtoToCar(carRequestDto);
         foundUser.addCar(createdCar);
         if(foundUser.getRole() == Role.ADMIN){
             createdCar.setStatus(CarStatus.AVAILABLE);
@@ -45,48 +43,31 @@ public class CarService {
 
         Car savedCar = carRepository.save(createdCar);
 
-        CarResponseDto responseDto = new CarResponseDto();
-        responseDto.setId(savedCar.getId());
-        responseDto.setBrand(savedCar.getBrand());
-        responseDto.setModel(savedCar.getModel());
-        responseDto.setLicensePlate(savedCar.getLicensePlate());
-        responseDto.setPricePerDay(savedCar.getPricePerDay());
-        responseDto.setStatus(savedCar.getStatus());
-
-        return responseDto;
+        return carMapper.carToCarResponseDto(savedCar);
     }
 
     public List<CarResponseDto> getAvailableCars(){
         return carRepository.findByStatus(CarStatus.AVAILABLE).stream()
-                .map(car -> {
-                    CarResponseDto responseDto = new CarResponseDto();
-
-                    responseDto.setId(car.getId());
-                    responseDto.setBrand(car.getBrand());
-                    responseDto.setLicensePlate(car.getLicensePlate());
-                    responseDto.setModel(car.getModel());
-                    responseDto.setPricePerDay(car.getPricePerDay());
-                    responseDto.setStatus(car.getStatus());
-
-                    return responseDto;
-                }).toList();
+                .map(carMapper::carToCarResponseDto).toList();
     }
 
     @PreAuthorize("hasRole('ADMIN')")
-    public void approveCar(Long carId){
+    public CarResponseDto approveCar(Long carId){
         Car foundCar = carRepository.findById(carId).orElseThrow(() -> new EntityNotFoundException("Car not found"));
         foundCar.setStatus(CarStatus.AVAILABLE);
-        carRepository.save(foundCar);
+        Car savedCar = carRepository.save(foundCar);
+        return carMapper.carToCarResponseDto(savedCar);
     }
 
     @PreAuthorize("hasRole('ADMIN')")
-    public void rejectCar(Long carId){
+    public CarResponseDto rejectCar(Long carId){
         Car foundCar = carRepository.findById(carId).orElseThrow(() -> new EntityNotFoundException("Car not found"));
         foundCar.setStatus(CarStatus.REJECTED);
-        carRepository.save(foundCar);
+        Car savedCar = carRepository.save(foundCar);
+        return carMapper.carToCarResponseDto(savedCar);
     }
 
-    public void withdrawCar(Long carId){
+    public CarResponseDto withdrawCar(Long carId){
         String emailOfLoggedUser = SecurityContextHolder.getContext().getAuthentication().getName();
 
         Car foundCar = carRepository.findById(carId).orElseThrow(() -> new EntityNotFoundException("Car not found"));
@@ -98,6 +79,7 @@ public class CarService {
             throw new IllegalStateException("Car is actually rented");
         }
         foundCar.setStatus(CarStatus.UNAVAILABLE);
-        carRepository.save(foundCar);
+        Car savedCar = carRepository.save(foundCar);
+        return carMapper.carToCarResponseDto(savedCar);
     }
 }

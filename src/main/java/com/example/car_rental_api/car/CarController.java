@@ -32,21 +32,21 @@ public class CarController {
         return ResponseEntity.status(HttpStatus.OK).body(availableCars);
     }
 
-    @PostMapping("/approve/{carId}")
-    public ResponseEntity<Void> approveCar(@PathVariable Long carId){
-        carService.approveCar(carId);
-        return ResponseEntity.status(HttpStatus.OK).build();
+    @PatchMapping("/approve/{carId}")
+    public ResponseEntity<CarResponseDto> approveCar(@PathVariable Long carId){
+        CarResponseDto approvedCar = carService.approveCar(carId);
+        return ResponseEntity.status(HttpStatus.OK).body(approvedCar);
     }
 
-    @PostMapping("/reject/{carId}")
-    public ResponseEntity<Void> rejectCar(@PathVariable Long carId){
-        carService.rejectCar(carId);
-        return ResponseEntity.status(HttpStatus.OK).build();
+    @PatchMapping("/reject/{carId}")
+    public ResponseEntity<CarResponseDto> rejectCar(@PathVariable Long carId){
+        CarResponseDto rejectedCar = carService.rejectCar(carId);
+        return ResponseEntity.status(HttpStatus.OK).body(rejectedCar);
     }
 
-    @PostMapping("/withdraw/{carId}")
-    public ResponseEntity<Void> withdrawCar(@PathVariable Long carId){
-        carService.withdrawCar(carId);
-        return ResponseEntity.status(HttpStatus.OK).build();
+    @PatchMapping("/withdraw/{carId}")
+    public ResponseEntity<CarResponseDto> withdrawCar(@PathVariable Long carId){
+        CarResponseDto withdrewCar = carService.withdrawCar(carId);
+        return ResponseEntity.status(HttpStatus.OK).body(withdrewCar);
     }
 }
