@@ -16,6 +16,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 import javax.swing.text.html.Option;
@@ -33,8 +36,15 @@ public class CarServiceTest {
 
     @Test
     void addCarShouldReturnCarResponseDtoWhenDataIsValid(){
+        Authentication authentication = Mockito.mock(Authentication.class);
+        SecurityContext securityContext = Mockito.mock(SecurityContext.class);
+        Mockito.when(securityContext.getAuthentication()).thenReturn(authentication);
+        Mockito.when(authentication.getName()).thenReturn("test@test.com");
+        SecurityContextHolder.setContext(securityContext);
+
         User mockUser = new User();
         mockUser.setId(1L);
+        mockUser.setEmail("test@test.com");
 
         CarRequestDto testCarToAdd = new CarRequestDto();
         testCarToAdd.setBrand("testBrand");
@@ -48,7 +58,8 @@ public class CarServiceTest {
         savedCar.setModel("testModel");
         savedCar.setStatus(CarStatus.PENDING);
 
-        Mockito.when(userRepository.findById(1L)).thenReturn(Optional.of(mockUser));
+
+        Mockito.when(userRepository.findByEmail("test@test.com")).thenReturn(Optional.of(mockUser));
 
         Mockito.when(carRepository.existsByLicensePlate("testLicensePlate")).thenReturn(false);
 
@@ -56,7 +67,7 @@ public class CarServiceTest {
 
 
 
-        CarResponseDto result = carService.addCar(testCarToAdd, 1L);
+        CarResponseDto result = carService.addCar(testCarToAdd);
 
         Assertions.assertNotNull(result);
         Assertions.assertEquals(1L, result.getId());
@@ -65,7 +76,13 @@ public class CarServiceTest {
 
     @Test
     void addCarShouldThrowUsernameNotFoundExceptionWhenOwnerIdDoNotExist(){
-        Mockito.when(userRepository.findById(1L)).thenReturn(Optional.empty());
+        Authentication authentication = Mockito.mock(Authentication.class);
+        SecurityContext securityContext = Mockito.mock(SecurityContext.class);
+        Mockito.when(securityContext.getAuthentication()).thenReturn(authentication);
+        Mockito.when(authentication.getName()).thenReturn("test@test.com");
+        SecurityContextHolder.setContext(securityContext);
+
+        Mockito.when(userRepository.findByEmail("test@test.com")).thenReturn(Optional.empty());
 
         CarRequestDto testCarToAdd = new CarRequestDto();
         testCarToAdd.setBrand("testBrand");
@@ -73,7 +90,7 @@ public class CarServiceTest {
         testCarToAdd.setModel("testModel");
 
         Assertions.assertThrows(UsernameNotFoundException.class,() -> {
-            carService.addCar(testCarToAdd, 1L);
+            carService.addCar(testCarToAdd);
         });
 
         Mockito.verify(carRepository, Mockito.never()).save(Mockito.any(Car.class));
@@ -81,7 +98,14 @@ public class CarServiceTest {
 
     @Test
     void addCarShouldThrowIllegalArgumentExceptionWhenCarWithLicensePlateAlreadyExists(){
+        Authentication authentication = Mockito.mock(Authentication.class);
+        SecurityContext securityContext = Mockito.mock(SecurityContext.class);
+        Mockito.when(securityContext.getAuthentication()).thenReturn(authentication);
+        Mockito.when(authentication.getName()).thenReturn("test@test.com");
+        SecurityContextHolder.setContext(securityContext);
+
         User mockUser = new User();
+        mockUser.setEmail("test@test.com");
         mockUser.setId(1L);
 
         CarRequestDto testCarToAdd = new CarRequestDto();
@@ -89,12 +113,12 @@ public class CarServiceTest {
         testCarToAdd.setLicensePlate("testLicensePlate");
         testCarToAdd.setModel("testModel");
 
-        Mockito.when(userRepository.findById(1L)).thenReturn(Optional.of(mockUser));
+        Mockito.when(userRepository.findByEmail("test@test.com")).thenReturn(Optional.of(mockUser));
 
         Mockito.when(carRepository.existsByLicensePlate("testLicensePlate")).thenReturn(true);
 
         Assertions.assertThrows(IllegalArgumentException.class, () ->{
-            carService.addCar(testCarToAdd, 1L);
+            carService.addCar(testCarToAdd);
         });
 
         Mockito.verify(carRepository, Mockito.never()).save(Mockito.any(Car.class));

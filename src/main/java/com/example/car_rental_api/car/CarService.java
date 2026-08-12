@@ -4,6 +4,7 @@ import com.example.car_rental_api.car.dto.CarRequestDto;
 import com.example.car_rental_api.car.dto.CarResponseDto;
 import com.example.car_rental_api.user.User;
 import com.example.car_rental_api.user.UserRepository;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
@@ -18,10 +19,11 @@ public class CarService {
         this.userRepository = userRepository;
     }
 
-    public CarResponseDto addCar(CarRequestDto carRequestDto, Long ownerId){
+    public CarResponseDto addCar(CarRequestDto carRequestDto){
         //TODO: find user by e-mail, not by id (will be added while configuring Spring Security)
         //TODO: verification by JWT token
-        User foundUser = userRepository.findById(ownerId).orElseThrow(() -> new UsernameNotFoundException("User not found"));
+        String emailOfLoggedInUser = SecurityContextHolder.getContext().getAuthentication().getName();
+        User foundUser = userRepository.findByEmail(emailOfLoggedInUser).orElseThrow(() -> new UsernameNotFoundException("User not found"));
         Car createdCar = new Car();
 
         if(carRepository.existsByLicensePlate(carRequestDto.getLicensePlate())){

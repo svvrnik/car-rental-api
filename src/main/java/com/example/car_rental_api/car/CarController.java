@@ -21,8 +21,8 @@ public class CarController {
     }
 
     @PostMapping("/add")
-    public ResponseEntity<CarResponseDto> addCar(@RequestHeader("X-User-Id") Long ownerId, @RequestBody @Valid CarRequestDto carRequestDto){
-        CarResponseDto carResponseDto = carService.addCar(carRequestDto,ownerId);
+    public ResponseEntity<CarResponseDto> addCar(@RequestBody @Valid CarRequestDto carRequestDto){
+        CarResponseDto carResponseDto = carService.addCar(carRequestDto);
         return ResponseEntity.status(HttpStatus.CREATED).body(carResponseDto);
     }
 
