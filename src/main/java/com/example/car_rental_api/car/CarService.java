@@ -2,8 +2,12 @@ package com.example.car_rental_api.car;
 
 import com.example.car_rental_api.car.dto.CarRequestDto;
 import com.example.car_rental_api.car.dto.CarResponseDto;
+import com.example.car_rental_api.user.Role;
 import com.example.car_rental_api.user.User;
 import com.example.car_rental_api.user.UserRepository;
+import jakarta.persistence.EntityNotFoundException;
+import org.hibernate.ObjectNotFoundException;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
@@ -20,8 +24,6 @@ public class CarService {
     }
 
     public CarResponseDto addCar(CarRequestDto carRequestDto){
-        //TODO: find user by e-mail, not by id (will be added while configuring Spring Security)
-        //TODO: verification by JWT token
         String emailOfLoggedInUser = SecurityContextHolder.getContext().getAuthentication().getName();
         User foundUser = userRepository.findByEmail(emailOfLoggedInUser).orElseThrow(() -> new UsernameNotFoundException("User not found"));
         Car createdCar = new Car();
@@ -35,7 +37,11 @@ public class CarService {
         createdCar.setLicensePlate(carRequestDto.getLicensePlate());
         createdCar.setPricePerDay(carRequestDto.getPricePerDay());
         foundUser.addCar(createdCar);
-        createdCar.setStatus(CarStatus.PENDING);
+        if(foundUser.getRole() == Role.ADMIN){
+            createdCar.setStatus(CarStatus.AVAILABLE);
+        }else{
+            createdCar.setStatus(CarStatus.PENDING);
+        }
 
         Car savedCar = carRepository.save(createdCar);
 
@@ -64,5 +70,34 @@ public class CarService {
 
                     return responseDto;
                 }).toList();
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    public void approveCar(Long carId){
+        Car foundCar = carRepository.findById(carId).orElseThrow(() -> new EntityNotFoundException("Car not found"));
+        foundCar.setStatus(CarStatus.AVAILABLE);
+        carRepository.save(foundCar);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    public void rejectCar(Long carId){
+        Car foundCar = carRepository.findById(carId).orElseThrow(() -> new EntityNotFoundException("Car not found"));
+        foundCar.setStatus(CarStatus.REJECTED);
+        carRepository.save(foundCar);
+    }
+
+    public void withdrawCar(Long carId){
+        String emailOfLoggedUser = SecurityContextHolder.getContext().getAuthentication().getName();
+
+        Car foundCar = carRepository.findById(carId).orElseThrow(() -> new EntityNotFoundException("Car not found"));
+
+        if(!foundCar.getOwner().getEmail().equals(emailOfLoggedUser)){
+            throw new IllegalArgumentException("You are not owner of this car");
+        }
+        if(foundCar.getStatus() == CarStatus.RENTED){
+            throw new IllegalStateException("Car is actually rented");
+        }
+        foundCar.setStatus(CarStatus.UNAVAILABLE);
+        carRepository.save(foundCar);
     }
 }

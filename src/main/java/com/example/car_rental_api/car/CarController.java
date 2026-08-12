@@ -31,4 +31,22 @@ public class CarController {
         List<CarResponseDto> availableCars = carService.getAvailableCars();
         return ResponseEntity.status(HttpStatus.OK).body(availableCars);
     }
+
+    @PostMapping("/approve/{carId}")
+    public ResponseEntity<Void> approveCar(@PathVariable Long carId){
+        carService.approveCar(carId);
+        return ResponseEntity.status(HttpStatus.OK).build();
+    }
+
+    @PostMapping("/reject/{carId}")
+    public ResponseEntity<Void> rejectCar(@PathVariable Long carId){
+        carService.rejectCar(carId);
+        return ResponseEntity.status(HttpStatus.OK).build();
+    }
+
+    @PostMapping("/withdraw/{carId}")
+    public ResponseEntity<Void> withdrawCar(@PathVariable Long carId){
+        carService.withdrawCar(carId);
+        return ResponseEntity.status(HttpStatus.OK).build();
+    }
 }
