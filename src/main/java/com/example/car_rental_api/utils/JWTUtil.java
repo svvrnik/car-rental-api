@@ -13,15 +13,16 @@ import java.util.Date;
 
 @Component
 public class JWTUtil {
-    private final long EXPIRATION_TIME = 1000*60*60*24;
+    private final long expiration;
     private final Key key;
 
-    public JWTUtil(@Value("${jwt.secret}") String secret){
+    public JWTUtil(@Value("${jwt.secret}") String secret, @Value("${jwt.expiration}") long expiration){
         this.key = Keys.hmacShaKeyFor(secret.getBytes());
+        this.expiration = expiration;
     }
 
     public String generateToken(String email){
-        return Jwts.builder().setSubject(email).setIssuedAt(new Date()).setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME)).signWith(key, SignatureAlgorithm.HS256).compact();
+        return Jwts.builder().setSubject(email).setIssuedAt(new Date()).setExpiration(new Date(System.currentTimeMillis() + expiration)).signWith(key, SignatureAlgorithm.HS256).compact();
     }
 
     public String extractEmail(String token){
