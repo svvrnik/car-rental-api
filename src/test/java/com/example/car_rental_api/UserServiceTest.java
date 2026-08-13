@@ -11,6 +11,7 @@ import com.example.car_rental_api.user.dto.UserResponseDto;
 import com.example.car_rental_api.user.mapper.UserMapper;
 import io.jsonwebtoken.lang.Assert;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -38,6 +39,15 @@ public class UserServiceTest {
     private TransactionService transactionService;
     @InjectMocks
     private UserService userService;
+
+    @BeforeEach
+    void setUpSecurity() {
+        Authentication authentication = Mockito.mock(Authentication.class);
+        SecurityContext securityContext = Mockito.mock(SecurityContext.class);
+        Mockito.lenient().when(securityContext.getAuthentication()).thenReturn(authentication);
+        Mockito.lenient().when(authentication.getName()).thenReturn("test@test.com");
+        SecurityContextHolder.setContext(securityContext);
+    }
 
     @Test
     void registerUserShouldCreateNewUserInRepositoryAndReturnResponse(){
@@ -78,12 +88,6 @@ public class UserServiceTest {
 
     @Test
     void addFundsShouldIncreaseUserAccountBalance(){
-        Authentication authentication = Mockito.mock(Authentication.class);
-        SecurityContext securityContext = Mockito.mock(SecurityContext.class);
-        Mockito.when(securityContext.getAuthentication()).thenReturn(authentication);
-        Mockito.when(authentication.getName()).thenReturn("test@test.com");
-        SecurityContextHolder.setContext(securityContext);
-
         User mockUser = new User();
         mockUser.setId(1L);
         mockUser.setEmail("test@test.com");
@@ -111,12 +115,6 @@ public class UserServiceTest {
 
     @Test
     void addFundsShouldThrowUsernameNotFoundException(){
-        Authentication authentication = Mockito.mock(Authentication.class);
-        SecurityContext securityContext = Mockito.mock(SecurityContext.class);
-        Mockito.when(securityContext.getAuthentication()).thenReturn(authentication);
-        Mockito.when(authentication.getName()).thenReturn("test@test.com");
-        SecurityContextHolder.setContext(securityContext);
-
         Mockito.when(userRepository.findByEmail("test@test.com")).thenReturn(Optional.empty());
 
         FundRequestDto fundRequestDto = new FundRequestDto();
@@ -133,12 +131,6 @@ public class UserServiceTest {
 
     @Test
     void withdrawFundsShouldDecreaseUserAccountBalance(){
-        Authentication authentication = Mockito.mock(Authentication.class);
-        SecurityContext securityContext = Mockito.mock(SecurityContext.class);
-        Mockito.when(securityContext.getAuthentication()).thenReturn(authentication);
-        Mockito.when(authentication.getName()).thenReturn("test@test.com");
-        SecurityContextHolder.setContext(securityContext);
-
         User mockUser = new User();
         mockUser.setId(1L);
         mockUser.setEmail("test@test.com");
@@ -165,12 +157,6 @@ public class UserServiceTest {
     }
     @Test
     void withdrawFundsShouldThrowIllegalArgumentExceptionWhenInsufficientFunds(){
-        Authentication authentication = Mockito.mock(Authentication.class);
-        SecurityContext securityContext = Mockito.mock(SecurityContext.class);
-        Mockito.when(securityContext.getAuthentication()).thenReturn(authentication);
-        Mockito.when(authentication.getName()).thenReturn("test@test.com");
-        SecurityContextHolder.setContext(securityContext);
-
         User mockUser = new User();
         mockUser.setId(1L);
         mockUser.setEmail("test@test.com");
@@ -191,12 +177,6 @@ public class UserServiceTest {
 
     @Test
     void withdrawFundsShouldThrowUsernameNotFoundException(){
-        Authentication authentication = Mockito.mock(Authentication.class);
-        SecurityContext securityContext = Mockito.mock(SecurityContext.class);
-        Mockito.when(securityContext.getAuthentication()).thenReturn(authentication);
-        Mockito.when(authentication.getName()).thenReturn("test@test.com");
-        SecurityContextHolder.setContext(securityContext);
-
         Mockito.when(userRepository.findByEmail("test@test.com")).thenReturn(Optional.empty());
 
         FundRequestDto fundRequestDto = new FundRequestDto();

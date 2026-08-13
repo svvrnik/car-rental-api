@@ -11,6 +11,7 @@ import com.example.car_rental_api.user.User;
 import com.example.car_rental_api.user.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -36,14 +37,17 @@ public class CarServiceTest {
     @InjectMocks
     private CarService carService;
 
-    @Test
-    void addCarShouldReturnCarResponseDtoWhenDataIsValid(){
+    @BeforeEach
+    void setUpSecurity() {
         Authentication authentication = Mockito.mock(Authentication.class);
         SecurityContext securityContext = Mockito.mock(SecurityContext.class);
-        Mockito.when(securityContext.getAuthentication()).thenReturn(authentication);
-        Mockito.when(authentication.getName()).thenReturn("test@test.com");
+        Mockito.lenient().when(securityContext.getAuthentication()).thenReturn(authentication);
+        Mockito.lenient().when(authentication.getName()).thenReturn("test@test.com");
         SecurityContextHolder.setContext(securityContext);
+    }
 
+    @Test
+    void addCarShouldReturnCarResponseDtoWhenDataIsValid(){
         User mockUser = new User();
         mockUser.setId(1L);
         mockUser.setEmail("test@test.com");
@@ -81,12 +85,6 @@ public class CarServiceTest {
 
     @Test
     void addCarShouldThrowUsernameNotFoundExceptionWhenOwnerIdDoNotExist(){
-        Authentication authentication = Mockito.mock(Authentication.class);
-        SecurityContext securityContext = Mockito.mock(SecurityContext.class);
-        Mockito.when(securityContext.getAuthentication()).thenReturn(authentication);
-        Mockito.when(authentication.getName()).thenReturn("test@test.com");
-        SecurityContextHolder.setContext(securityContext);
-
         Mockito.when(userRepository.findByEmail("test@test.com")).thenReturn(Optional.empty());
 
         CarRequestDto testCarToAdd = new CarRequestDto();
@@ -103,12 +101,6 @@ public class CarServiceTest {
 
     @Test
     void addCarShouldThrowIllegalArgumentExceptionWhenCarWithLicensePlateAlreadyExists(){
-        Authentication authentication = Mockito.mock(Authentication.class);
-        SecurityContext securityContext = Mockito.mock(SecurityContext.class);
-        Mockito.when(securityContext.getAuthentication()).thenReturn(authentication);
-        Mockito.when(authentication.getName()).thenReturn("test@test.com");
-        SecurityContextHolder.setContext(securityContext);
-
         User mockUser = new User();
         mockUser.setEmail("test@test.com");
         mockUser.setId(1L);
@@ -206,12 +198,6 @@ public class CarServiceTest {
 
     @Test
     void withdrawCarShouldUpdateCarStatusToUnavailable(){
-        Authentication authentication = Mockito.mock(Authentication.class);
-        SecurityContext securityContext = Mockito.mock(SecurityContext.class);
-        Mockito.when(securityContext.getAuthentication()).thenReturn(authentication);
-        Mockito.when(authentication.getName()).thenReturn("test@test.com");
-        SecurityContextHolder.setContext(securityContext);
-
         User mockUser = new User();
         mockUser.setEmail("test@test.com");
         mockUser.setId(1L);
@@ -235,12 +221,6 @@ public class CarServiceTest {
 
     @Test
     void withdrawCarShouldThrowEntityNotFoundException(){
-        Authentication authentication = Mockito.mock(Authentication.class);
-        SecurityContext securityContext = Mockito.mock(SecurityContext.class);
-        Mockito.when(securityContext.getAuthentication()).thenReturn(authentication);
-        Mockito.when(authentication.getName()).thenReturn("test@test.com");
-        SecurityContextHolder.setContext(securityContext);
-
         Mockito.when(carRepository.findById(1L)).thenReturn(Optional.empty());
         Assertions.assertThrows(EntityNotFoundException.class, () -> {
             carService.withdrawCar(1L);
@@ -251,12 +231,6 @@ public class CarServiceTest {
 
     @Test
     void withdrawCarShouldThrowIllegalArgumentException(){
-        Authentication authentication = Mockito.mock(Authentication.class);
-        SecurityContext securityContext = Mockito.mock(SecurityContext.class);
-        Mockito.when(securityContext.getAuthentication()).thenReturn(authentication);
-        Mockito.when(authentication.getName()).thenReturn("test@test.com");
-        SecurityContextHolder.setContext(securityContext);
-
         User mockUser = new User();
         mockUser.setEmail("differentTest@test.com");
         mockUser.setId(1L);
@@ -276,12 +250,6 @@ public class CarServiceTest {
 
     @Test
     void withdrawCarShouldThrowIllegalStateException(){
-        Authentication authentication = Mockito.mock(Authentication.class);
-        SecurityContext securityContext = Mockito.mock(SecurityContext.class);
-        Mockito.when(securityContext.getAuthentication()).thenReturn(authentication);
-        Mockito.when(authentication.getName()).thenReturn("test@test.com");
-        SecurityContextHolder.setContext(securityContext);
-
         User mockUser = new User();
         mockUser.setEmail("test@test.com");
         mockUser.setId(1L);
@@ -300,12 +268,6 @@ public class CarServiceTest {
     }
     @Test
     void getUserCarsShouldReturnListOfCarsForLoggedUsers(){
-        Authentication authentication = Mockito.mock(Authentication.class);
-        SecurityContext securityContext = Mockito.mock(SecurityContext.class);
-        Mockito.when(securityContext.getAuthentication()).thenReturn(authentication);
-        Mockito.when(authentication.getName()).thenReturn("test@test.com");
-        SecurityContextHolder.setContext(securityContext);
-
         Car mockCar = new Car();
         mockCar.setId(1L);
 
