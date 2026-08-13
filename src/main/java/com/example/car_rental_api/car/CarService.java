@@ -8,6 +8,7 @@ import com.example.car_rental_api.user.User;
 import com.example.car_rental_api.user.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
 import org.hibernate.ObjectNotFoundException;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -20,10 +21,12 @@ public class CarService {
     private final CarRepository carRepository;
     private final UserRepository userRepository;
     private final CarMapper carMapper;
-    public CarService(CarRepository carRepository, UserRepository userRepository, CarMapper carMapper) {
+    private final String companyEmail;
+    public CarService(CarRepository carRepository, UserRepository userRepository, CarMapper carMapper, @Value("${app.company.email}") String companyEmail) {
         this.carRepository = carRepository;
         this.userRepository = userRepository;
         this.carMapper = carMapper;
+        this.companyEmail = companyEmail;
     }
 
     public CarResponseDto addCar(CarRequestDto carRequestDto){
@@ -34,11 +37,14 @@ public class CarService {
             throw new IllegalArgumentException("Car with this license plate exists.");
         }
         Car createdCar = carMapper.carRequestDtoToCar(carRequestDto);
-        foundUser.addCar(createdCar);
+
         if(foundUser.getRole() == Role.ADMIN){
             createdCar.setStatus(CarStatus.AVAILABLE);
+            User companyAccount = userRepository.findByEmail(companyEmail).orElseThrow(() -> new UsernameNotFoundException("Company account is missing in the database")); //only for educational purpose - when renting car, everything goes to company account (virtual wallet)
+            companyAccount.addCar(createdCar);
         }else{
             createdCar.setStatus(CarStatus.PENDING);
+            foundUser.addCar(createdCar);
         }
 
         Car savedCar = carRepository.save(createdCar);
