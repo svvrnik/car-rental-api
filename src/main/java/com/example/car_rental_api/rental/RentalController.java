@@ -3,10 +3,13 @@ package com.example.car_rental_api.rental;
 import com.example.car_rental_api.rental.dto.RentalRequestDto;
 import com.example.car_rental_api.rental.dto.RentalResponseDto;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import java.util.List;
 
 @RestController
@@ -32,8 +35,9 @@ public class RentalController {
     }
 
     @GetMapping("/my-rentals")
-    public ResponseEntity<List<RentalResponseDto>> getUserRentals(){
-        List<RentalResponseDto> userRentals = rentalService.getUserRentals();
+    public ResponseEntity<Page<RentalResponseDto>> getUserRentals(@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size){
+        Pageable pageable = PageRequest.of(page, size);
+        Page<RentalResponseDto> userRentals = rentalService.getUserRentals(pageable);
         return ResponseEntity.status(HttpStatus.OK).body(userRentals);
     }
 }

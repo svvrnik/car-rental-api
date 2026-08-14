@@ -15,6 +15,8 @@ import jakarta.transaction.Transactional;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import java.math.BigDecimal;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -95,9 +97,9 @@ public class RentalService {
         return rentalMapper.rentalToRentalResponseDto(savedRental);
     }
 
-    public List<RentalResponseDto> getUserRentals(){
+    public Page<RentalResponseDto> getUserRentals(Pageable pageable){
         String loggedUserEmail = SecurityContextHolder.getContext().getAuthentication().getName();
 
-        return rentalRepository.findByUserEmail(loggedUserEmail).stream().map(rentalMapper::rentalToRentalResponseDto).toList();
+        return rentalRepository.findByUserEmail(loggedUserEmail, pageable).map(rentalMapper::rentalToRentalResponseDto);
     }
 }

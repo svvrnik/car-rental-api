@@ -11,6 +11,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 
@@ -50,15 +52,15 @@ public class CarService {
         return carMapper.carToCarResponseDto(savedCar);
     }
 
-    public List<CarResponseDto> getAvailableCars(){
-        return carRepository.findByStatus(CarStatus.AVAILABLE).stream()
-                .map(carMapper::carToCarResponseDto).toList();
+    public Page<CarResponseDto> getAvailableCars(Pageable pageable){
+        return carRepository.findByStatus(CarStatus.AVAILABLE, pageable)
+                .map(carMapper::carToCarResponseDto);
     }
 
-    public List<CarResponseDto> getUserCars(){
+    public Page<CarResponseDto> getUserCars(Pageable pageable){
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
 
-        return carRepository.findByOwnerEmail(email).stream().map(carMapper::carToCarResponseDto).toList();
+        return carRepository.findByOwnerEmail(email, pageable).map(carMapper::carToCarResponseDto);
     }
 
     @PreAuthorize("hasRole('ADMIN')")

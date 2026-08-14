@@ -1,6 +1,8 @@
 package com.example.car_rental_api.car.dto;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 
 import java.math.BigDecimal;
 
@@ -11,6 +13,8 @@ public class CarRequestDto {
     private String model;
     @NotBlank(message = "License plate can't be empty")
     private String licensePlate;
+    @NotNull(message = "Price per day can't be empty")
+    @Positive
     private BigDecimal pricePerDay;
 
     public String getBrand() {

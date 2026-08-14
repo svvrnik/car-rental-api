@@ -9,6 +9,7 @@ import com.example.car_rental_api.user.dto.FundRequestDto;
 import com.example.car_rental_api.user.dto.UserRegisterDto;
 import com.example.car_rental_api.user.dto.UserResponseDto;
 import com.example.car_rental_api.user.mapper.UserMapper;
+import jakarta.transaction.Transactional;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -45,7 +46,7 @@ public class UserService {
         User savedUser = userRepository.save(createdUser);
         return userMapper.userToUserResponseDto(savedUser);
     }
-
+    @Transactional
     public UserResponseDto addFunds(FundRequestDto fundRequestDto){
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         User foundUser = userRepository.findByEmail(email).orElseThrow(() ->  new UserNotFoundException("User not found"));
@@ -57,7 +58,7 @@ public class UserService {
 
         return userMapper.userToUserResponseDto(savedUser);
     }
-
+    @Transactional
     public UserResponseDto withdrawFunds(FundRequestDto fundRequestDto){
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         User foundUser = userRepository.findByEmail(email).orElseThrow(() -> new UserNotFoundException("User not found"));

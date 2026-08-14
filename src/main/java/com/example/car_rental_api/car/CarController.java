@@ -4,10 +4,13 @@ package com.example.car_rental_api.car;
 import com.example.car_rental_api.car.dto.CarRequestDto;
 import com.example.car_rental_api.car.dto.CarResponseDto;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import java.util.List;
 
 @RestController
@@ -27,14 +30,16 @@ public class CarController {
     }
 
     @GetMapping("/my-cars")
-    public ResponseEntity<List<CarResponseDto>> getUserCars(){
-        List<CarResponseDto> userCars = carService.getUserCars();
+    public ResponseEntity<Page<CarResponseDto>> getUserCars(@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size){
+        Pageable pageable = PageRequest.of(page, size);
+        Page<CarResponseDto> userCars = carService.getUserCars(pageable);
         return ResponseEntity.status(HttpStatus.OK).body(userCars);
     }
 
     @GetMapping("/available")
-    public ResponseEntity<List<CarResponseDto>> getAvailableCars(){
-        List<CarResponseDto> availableCars = carService.getAvailableCars();
+    public ResponseEntity<Page<CarResponseDto>> getAvailableCars(@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size){
+        Pageable pageable = PageRequest.of(page,size);
+        Page<CarResponseDto> availableCars = carService.getAvailableCars(pageable);
         return ResponseEntity.status(HttpStatus.OK).body(availableCars);
     }
 
