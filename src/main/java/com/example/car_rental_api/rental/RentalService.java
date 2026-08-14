@@ -3,6 +3,7 @@ package com.example.car_rental_api.rental;
 import com.example.car_rental_api.car.Car;
 import com.example.car_rental_api.car.CarRepository;
 import com.example.car_rental_api.car.CarStatus;
+import com.example.car_rental_api.exception.*;
 import com.example.car_rental_api.rental.dto.RentalRequestDto;
 import com.example.car_rental_api.rental.dto.RentalResponseDto;
 import com.example.car_rental_api.rental.mapper.RentalMapper;
@@ -10,15 +11,11 @@ import com.example.car_rental_api.transaction.TransactionService;
 import com.example.car_rental_api.transaction.TransactionType;
 import com.example.car_rental_api.user.User;
 import com.example.car_rental_api.user.UserRepository;
-import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
-import org.hibernate.ObjectNotFoundException;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 
@@ -39,24 +36,24 @@ public class RentalService {
     }
     @Transactional
     public RentalResponseDto rentCar(RentalRequestDto rentalRequestDto){
-        Car car = carRepository.findById(rentalRequestDto.getCarId()).orElseThrow(() -> new EntityNotFoundException("Car not found"));
+        Car car = carRepository.findById(rentalRequestDto.getCarId()).orElseThrow(() -> new CarNotFoundException("Car not found"));
 
         if(car.getStatus() != CarStatus.AVAILABLE){
-            throw new IllegalStateException("Car is not available right now");
+            throw new CarNotAvailableException("Car is not available right now");
         }
         if(rentalRepository.existsOverLappingRental(rentalRequestDto.getCarId(), rentalRequestDto.getStartDate(), rentalRequestDto.getEndDate())){
-            throw new IllegalArgumentException("Car is already rented in this time period");
+            throw new OverlappingRentalException("Car is already rented in this time period");
         }
 
         String loggedUserEmail = SecurityContextHolder.getContext().getAuthentication().getName();
-        User loggedUser = userRepository.findByEmail(loggedUserEmail).orElseThrow(() -> new UsernameNotFoundException("User not found"));
+        User loggedUser = userRepository.findByEmail(loggedUserEmail).orElseThrow(() -> new UserNotFoundException("User not found"));
 
         User ownerOfCar = car.getOwner();
 
         //max because what if sb want to rent car for only x hours? between will return 0 days (and we need to count it as one day)
         BigDecimal priceForRentPeriod = car.getPricePerDay().multiply(BigDecimal.valueOf(Math.max(1,ChronoUnit.DAYS.between(rentalRequestDto.getStartDate(), rentalRequestDto.getEndDate()))));
         if(priceForRentPeriod.compareTo(loggedUser.getAccountBalance())>0){
-            throw new IllegalArgumentException("Insufficient funds");
+            throw new InsufficientFundsException("Insufficient funds");
         }
 
         loggedUser.setAccountBalance(loggedUser.getAccountBalance().subtract(priceForRentPeriod));
@@ -82,14 +79,14 @@ public class RentalService {
     public RentalResponseDto returnCar(Long rentalId){
         String loggedUserEmail = SecurityContextHolder.getContext().getAuthentication().getName();
 
-        Rental rental = rentalRepository.findById(rentalId).orElseThrow(() -> new EntityNotFoundException("Rental not found"));
+        Rental rental = rentalRepository.findById(rentalId).orElseThrow(() -> new RentalNotFoundException("Rental not found"));
 
         if(!rental.getUser().getEmail().equals(loggedUserEmail)){
-            throw new IllegalArgumentException("You can only return your own rentals");
+            throw new UserIsNotRentalOwnerException("You can only return your own rentals");
         }
 
         if(rental.getStatus()!=RentalStatus.ACTIVE){
-            throw new IllegalStateException("This rental is not active or already completed");
+            throw new RentalNotActiveException("This rental is not active or already completed");
         }
 
         rental.setStatus(RentalStatus.COMPLETED);
@@ -100,8 +97,6 @@ public class RentalService {
 
     public List<RentalResponseDto> getUserRentals(){
         String loggedUserEmail = SecurityContextHolder.getContext().getAuthentication().getName();
-
-        User loggedUser = userRepository.findByEmail(loggedUserEmail).orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
         return rentalRepository.findByUserEmail(loggedUserEmail).stream().map(rentalMapper::rentalToRentalResponseDto).toList();
     }

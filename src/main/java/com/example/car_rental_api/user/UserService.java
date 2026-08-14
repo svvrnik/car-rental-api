@@ -1,5 +1,8 @@
 package com.example.car_rental_api.user;
 
+import com.example.car_rental_api.exception.EmailAlreadyInUseException;
+import com.example.car_rental_api.exception.InsufficientFundsException;
+import com.example.car_rental_api.exception.UserNotFoundException;
 import com.example.car_rental_api.transaction.TransactionService;
 import com.example.car_rental_api.transaction.TransactionType;
 import com.example.car_rental_api.user.dto.FundRequestDto;
@@ -30,7 +33,7 @@ public class UserService {
     public UserResponseDto registerUser(UserRegisterDto userRegisterDto){
         User createdUser = new User();
         if(userRepository.existsByEmail(userRegisterDto.getEmail())){
-            throw new IllegalArgumentException("User with this e-mail address exists.");
+            throw new EmailAlreadyInUseException("User with this e-mail address exists.");
         }
         createdUser.setEmail(userRegisterDto.getEmail());
         createdUser.setFirstName(userRegisterDto.getFirstName());
@@ -45,7 +48,7 @@ public class UserService {
 
     public UserResponseDto addFunds(FundRequestDto fundRequestDto){
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
-        User foundUser = userRepository.findByEmail(email).orElseThrow(() ->  new UsernameNotFoundException("User not found"));
+        User foundUser = userRepository.findByEmail(email).orElseThrow(() ->  new UserNotFoundException("User not found"));
 
         foundUser.setAccountBalance(foundUser.getAccountBalance().add(fundRequestDto.getAmount()));
         User savedUser = userRepository.save(foundUser);
@@ -57,10 +60,10 @@ public class UserService {
 
     public UserResponseDto withdrawFunds(FundRequestDto fundRequestDto){
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
-        User foundUser = userRepository.findByEmail(email).orElseThrow(() -> new UsernameNotFoundException("User not found"));
+        User foundUser = userRepository.findByEmail(email).orElseThrow(() -> new UserNotFoundException("User not found"));
 
         if(foundUser.getAccountBalance().compareTo(fundRequestDto.getAmount())<0){
-            throw new IllegalArgumentException("Insufficient funds");
+            throw new InsufficientFundsException("Insufficient funds");
         }
 
         foundUser.setAccountBalance(foundUser.getAccountBalance().subtract(fundRequestDto.getAmount()));

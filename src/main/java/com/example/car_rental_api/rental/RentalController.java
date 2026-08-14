@@ -22,7 +22,7 @@ public class RentalController {
     @PostMapping("/rent")
     public ResponseEntity<RentalResponseDto> rentCar(@Valid @RequestBody RentalRequestDto rentalRequestDto){
         RentalResponseDto rentedCar = rentalService.rentCar(rentalRequestDto);
-        return ResponseEntity.status(HttpStatus.OK).body(rentedCar);
+        return ResponseEntity.status(HttpStatus.CREATED).body(rentedCar);
     }
 
     @PatchMapping("/return/{rentalId}")

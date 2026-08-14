@@ -3,15 +3,13 @@ package com.example.car_rental_api.car;
 import com.example.car_rental_api.car.dto.CarRequestDto;
 import com.example.car_rental_api.car.dto.CarResponseDto;
 import com.example.car_rental_api.car.mapper.CarMapper;
+import com.example.car_rental_api.exception.*;
 import com.example.car_rental_api.user.Role;
 import com.example.car_rental_api.user.User;
 import com.example.car_rental_api.user.UserRepository;
-import jakarta.persistence.EntityNotFoundException;
-import org.hibernate.ObjectNotFoundException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -31,16 +29,16 @@ public class CarService {
 
     public CarResponseDto addCar(CarRequestDto carRequestDto){
         String emailOfLoggedInUser = SecurityContextHolder.getContext().getAuthentication().getName();
-        User foundUser = userRepository.findByEmail(emailOfLoggedInUser).orElseThrow(() -> new UsernameNotFoundException("User not found"));
+        User foundUser = userRepository.findByEmail(emailOfLoggedInUser).orElseThrow(() -> new UserNotFoundException("User not found"));
 
         if(carRepository.existsByLicensePlate(carRequestDto.getLicensePlate())){
-            throw new IllegalArgumentException("Car with this license plate exists.");
+            throw new DuplicateLicensePlateException("Car with this license plate exists.");
         }
         Car createdCar = carMapper.carRequestDtoToCar(carRequestDto);
 
         if(foundUser.getRole() == Role.ADMIN){
             createdCar.setStatus(CarStatus.AVAILABLE);
-            User companyAccount = userRepository.findByEmail(companyEmail).orElseThrow(() -> new UsernameNotFoundException("Company account is missing in the database")); //only for educational purpose - when renting car, everything goes to company account (virtual wallet)
+            User companyAccount = userRepository.findByEmail(companyEmail).orElseThrow(() -> new CompanyAccountNotFoundException("Company account is missing in the database")); //only for educational purpose - when renting car, everything goes to company account (virtual wallet)
             companyAccount.addCar(createdCar);
         }else{
             createdCar.setStatus(CarStatus.PENDING);
@@ -65,7 +63,7 @@ public class CarService {
 
     @PreAuthorize("hasRole('ADMIN')")
     public CarResponseDto approveCar(Long carId){
-        Car foundCar = carRepository.findById(carId).orElseThrow(() -> new EntityNotFoundException("Car not found"));
+        Car foundCar = carRepository.findById(carId).orElseThrow(() -> new CarNotFoundException("Car not found"));
         foundCar.setStatus(CarStatus.AVAILABLE);
         Car savedCar = carRepository.save(foundCar);
         return carMapper.carToCarResponseDto(savedCar);
@@ -73,7 +71,7 @@ public class CarService {
 
     @PreAuthorize("hasRole('ADMIN')")
     public CarResponseDto rejectCar(Long carId){
-        Car foundCar = carRepository.findById(carId).orElseThrow(() -> new EntityNotFoundException("Car not found"));
+        Car foundCar = carRepository.findById(carId).orElseThrow(() -> new CarNotFoundException("Car not found"));
         foundCar.setStatus(CarStatus.REJECTED);
         Car savedCar = carRepository.save(foundCar);
         return carMapper.carToCarResponseDto(savedCar);
@@ -82,13 +80,13 @@ public class CarService {
     public CarResponseDto withdrawCar(Long carId){
         String emailOfLoggedUser = SecurityContextHolder.getContext().getAuthentication().getName();
 
-        Car foundCar = carRepository.findById(carId).orElseThrow(() -> new EntityNotFoundException("Car not found"));
+        Car foundCar = carRepository.findById(carId).orElseThrow(() -> new CarNotFoundException("Car not found"));
 
         if(!foundCar.getOwner().getEmail().equals(emailOfLoggedUser)){
-            throw new IllegalArgumentException("You are not owner of this car");
+            throw new UserIsNotCarOwnerException("You are not owner of this car");
         }
         if(foundCar.getStatus() == CarStatus.RENTED){
-            throw new IllegalStateException("Car is actually rented");
+            throw new CarCurrentlyRentedException("Car is actually rented");
         }
         foundCar.setStatus(CarStatus.UNAVAILABLE);
         Car savedCar = carRepository.save(foundCar);
