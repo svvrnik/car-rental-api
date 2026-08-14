@@ -3,6 +3,7 @@ package com.example.car_rental_api;
 import com.example.car_rental_api.car.Car;
 import com.example.car_rental_api.car.CarRepository;
 import com.example.car_rental_api.car.CarStatus;
+import com.example.car_rental_api.exception.*;
 import com.example.car_rental_api.rental.Rental;
 import com.example.car_rental_api.rental.RentalRepository;
 import com.example.car_rental_api.rental.RentalService;
@@ -23,6 +24,10 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -30,6 +35,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 @ExtendWith(MockitoExtension.class)
@@ -57,12 +63,12 @@ public class RentalServiceTest {
     }
 
     @Test
-    void rentCarShouldThrowExceptionWhenCarIsNotFound(){
+    void rentCarShouldThrowCarNotFoundException(){
         RentalRequestDto mockRental = new RentalRequestDto();
         mockRental.setCarId(1L);
         Mockito.when(carRepository.findById(mockRental.getCarId())).thenReturn(Optional.empty());
 
-        Assertions.assertThrows(EntityNotFoundException.class, () -> {
+        Assertions.assertThrows(CarNotFoundException.class, () -> {
             rentalService.rentCar(mockRental);
         });
 
@@ -72,7 +78,7 @@ public class RentalServiceTest {
     }
 
     @Test
-    void rentCarShouldThrowExceptionIfCarIsNotAvailable(){
+    void rentCarShouldThrowCarNotAvailableException(){
         RentalRequestDto mockRental = new RentalRequestDto();
         mockRental.setCarId(1L);
 
@@ -82,7 +88,7 @@ public class RentalServiceTest {
 
         Mockito.when(carRepository.findById(mockRental.getCarId())).thenReturn(Optional.of(mockCar));
 
-        Assertions.assertThrows(IllegalStateException.class, () -> {
+        Assertions.assertThrows(CarNotAvailableException.class, () -> {
             rentalService.rentCar(mockRental);
         });
         Mockito.verify(userRepository, Mockito.never()).save(Mockito.any(User.class));
@@ -91,7 +97,7 @@ public class RentalServiceTest {
     }
 
     @Test
-    void rentCarShouldThrowExceptionIfExistsOverLappingRental(){
+    void rentCarShouldThrowOverlappingRentalException(){
         RentalRequestDto mockRental = new RentalRequestDto();
         mockRental.setCarId(1L);
         mockRental.setStartDate(LocalDateTime.now());
@@ -105,7 +111,7 @@ public class RentalServiceTest {
 
         Mockito.when(rentalRepository.existsOverLappingRental(Mockito.anyLong(), Mockito.any(LocalDateTime.class), Mockito.any(LocalDateTime.class))).thenReturn(true);
 
-        Assertions.assertThrows(IllegalArgumentException.class, () -> {
+        Assertions.assertThrows(OverlappingRentalException.class, () -> {
             rentalService.rentCar(mockRental);
         });
         Mockito.verify(userRepository, Mockito.never()).save(Mockito.any(User.class));
@@ -114,7 +120,7 @@ public class RentalServiceTest {
     }
 
     @Test
-    void rentCarShouldThrowExceptionIfUserNotFound() {
+    void rentCarShouldThrowUserNotFoundException() {
         RentalRequestDto mockRental = new RentalRequestDto();
         mockRental.setCarId(1L);
         mockRental.setStartDate(LocalDateTime.now());
@@ -130,7 +136,7 @@ public class RentalServiceTest {
 
         Mockito.when(userRepository.findByEmail("test@test.com")).thenReturn(Optional.empty());
 
-        Assertions.assertThrows(UsernameNotFoundException.class, () -> {
+        Assertions.assertThrows(UserNotFoundException.class, () -> {
             rentalService.rentCar(mockRental);
         });
 
@@ -140,7 +146,7 @@ public class RentalServiceTest {
     }
 
     @Test
-    void rentCarShouldThrowExceptionIfUserDoNotHaveEnoughCredits() {
+    void rentCarShouldThrowInsufficientFundsException() {
         RentalRequestDto mockRental = new RentalRequestDto();
         mockRental.setCarId(1L);
         mockRental.setStartDate(LocalDateTime.now());
@@ -163,7 +169,7 @@ public class RentalServiceTest {
 
         Mockito.when(userRepository.findByEmail("test@test.com")).thenReturn(Optional.of(mockUser));
 
-        Assertions.assertThrows(IllegalArgumentException.class, () -> {
+        Assertions.assertThrows(InsufficientFundsException.class, () -> {
             rentalService.rentCar(mockRental);
         });
 
@@ -220,10 +226,10 @@ public class RentalServiceTest {
         Mockito.verify(rentalRepository, Mockito.times(1)).save(Mockito.any(Rental.class));
     }
     @Test
-    void returnCarShouldThrowExceptionWhenRentalIsNotFound() {
+    void returnCarShouldThrowRentalNotFoundException() {
         Mockito.when(rentalRepository.findById(1L)).thenReturn(Optional.empty());
 
-        Assertions.assertThrows(EntityNotFoundException.class, () -> {
+        Assertions.assertThrows(RentalNotFoundException.class, () -> {
             rentalService.returnCar(1L);
         });
 
@@ -231,7 +237,7 @@ public class RentalServiceTest {
     }
 
     @Test
-    void returnCarShouldThrowExceptionIfUserIsNotOwner() {
+    void returnCarShouldThrowUserIsNotRentalOwnerException() {
         Rental mockRental = new Rental();
         User wrongUser = new User();
         wrongUser.setEmail("test2@test.com");
@@ -239,7 +245,7 @@ public class RentalServiceTest {
 
         Mockito.when(rentalRepository.findById(1L)).thenReturn(Optional.of(mockRental));
 
-        Assertions.assertThrows(IllegalArgumentException.class, () -> {
+        Assertions.assertThrows(UserIsNotRentalOwnerException.class, () -> {
             rentalService.returnCar(1L);
         });
 
@@ -247,7 +253,7 @@ public class RentalServiceTest {
     }
 
     @Test
-    void returnCarShouldThrowExceptionIfRentalIsNotActive() {
+    void returnCarShouldThrowRentalNotActiveException() {
         User correctUser = new User();
         correctUser.setEmail("test@test.com");
 
@@ -257,7 +263,7 @@ public class RentalServiceTest {
 
         Mockito.when(rentalRepository.findById(1L)).thenReturn(Optional.of(mockRental));
 
-        Assertions.assertThrows(IllegalStateException.class, () -> {
+        Assertions.assertThrows(RentalNotActiveException.class, () -> {
             rentalService.returnCar(1L);
         });
 
@@ -291,35 +297,22 @@ public class RentalServiceTest {
     }
 
     @Test
-    void getUserRentalsShouldThrowExceptionIfUserNotFound() {
-        Mockito.when(userRepository.findByEmail("test@test.com")).thenReturn(Optional.empty());
-
-        Assertions.assertThrows(UsernameNotFoundException.class, () -> {
-            rentalService.getUserRentals();
-        });
-
-        Mockito.verify(rentalRepository, Mockito.never()).findByUserEmail(Mockito.anyString());
-    }
-
-    @Test
     void getUserRentalsShouldSuccessfullyReturnListOfUserRentals() {
-        User mockUser = new User();
-        mockUser.setEmail("test@test.com");
-
         Rental mockRental1 = new Rental();
         Rental mockRental2 = new Rental();
 
         RentalResponseDto mockDto1 = new RentalResponseDto();
         RentalResponseDto mockDto2 = new RentalResponseDto();
 
-        Mockito.when(userRepository.findByEmail("test@test.com")).thenReturn(Optional.of(mockUser));
-        Mockito.when(rentalRepository.findByUserEmail("test@test.com")).thenReturn(java.util.List.of(mockRental1, mockRental2));
+        Pageable pageable = PageRequest.of(0,10);
+
+        Mockito.when(rentalRepository.findByUserEmail(Mockito.eq("test@test.com"), Mockito.any(Pageable.class))).thenReturn(new PageImpl<>(List.of(mockRental1, mockRental2)));
         Mockito.when(rentalMapper.rentalToRentalResponseDto(mockRental1)).thenReturn(mockDto1);
         Mockito.when(rentalMapper.rentalToRentalResponseDto(mockRental2)).thenReturn(mockDto2);
 
-        java.util.List<RentalResponseDto> result = rentalService.getUserRentals();
+        Page<RentalResponseDto> result = rentalService.getUserRentals(pageable);
 
-        Assertions.assertEquals(2, result.size());
-        Mockito.verify(rentalRepository, Mockito.times(1)).findByUserEmail("test@test.com");
+        Assertions.assertEquals(2, result.getTotalElements());
+        Mockito.verify(rentalRepository, Mockito.times(1)).findByUserEmail(Mockito.eq("test@test.com"), Mockito.any(Pageable.class));
     }
 }

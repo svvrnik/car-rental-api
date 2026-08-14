@@ -1,5 +1,8 @@
 package com.example.car_rental_api;
 
+import com.example.car_rental_api.exception.EmailAlreadyInUseException;
+import com.example.car_rental_api.exception.InsufficientFundsException;
+import com.example.car_rental_api.exception.UserNotFoundException;
 import com.example.car_rental_api.transaction.TransactionService;
 import com.example.car_rental_api.transaction.TransactionType;
 import com.example.car_rental_api.user.User;
@@ -70,7 +73,7 @@ public class UserServiceTest {
         Assertions.assertNotNull(response);
     }
     @Test
-    void registerUserShouldThrowIllegalArgumentExceptionWhenUserWithThisEmailExists(){
+    void registerUserShouldThrowEmailAlreadyInUseException(){
         UserRegisterDto userToAdd = new UserRegisterDto();
 
         userToAdd.setEmail("test@test.com");
@@ -80,7 +83,7 @@ public class UserServiceTest {
 
         Mockito.when(userRepository.existsByEmail("test@test.com")).thenReturn(true);
 
-        Assertions.assertThrows(IllegalArgumentException.class, () -> {
+        Assertions.assertThrows(EmailAlreadyInUseException.class, () -> {
             userService.registerUser(userToAdd);
         });
         Mockito.verify(userRepository, Mockito.never()).save(Mockito.any(User.class));
@@ -114,13 +117,13 @@ public class UserServiceTest {
     }
 
     @Test
-    void addFundsShouldThrowUsernameNotFoundException(){
+    void addFundsShouldThrowUserNotFoundException(){
         Mockito.when(userRepository.findByEmail("test@test.com")).thenReturn(Optional.empty());
 
         FundRequestDto fundRequestDto = new FundRequestDto();
         fundRequestDto.setAmount(new BigDecimal("100.00"));
 
-        Assertions.assertThrows(UsernameNotFoundException.class,() -> {
+        Assertions.assertThrows(UserNotFoundException.class,() -> {
             userService.addFunds(fundRequestDto);
         });
 
@@ -156,7 +159,7 @@ public class UserServiceTest {
         Mockito.verify(transactionService, Mockito.times(1)).createTransaction(mockUser, null, new BigDecimal("50.00"), TransactionType.PAYOUT);
     }
     @Test
-    void withdrawFundsShouldThrowIllegalArgumentExceptionWhenInsufficientFunds(){
+    void withdrawFundsShouldThrowInsufficientFundsException(){
         User mockUser = new User();
         mockUser.setId(1L);
         mockUser.setEmail("test@test.com");
@@ -167,7 +170,7 @@ public class UserServiceTest {
         FundRequestDto fundRequestDto = new FundRequestDto();
         fundRequestDto.setAmount(new BigDecimal("100.00"));
 
-        Assertions.assertThrows(IllegalArgumentException.class,() -> {
+        Assertions.assertThrows(InsufficientFundsException.class,() -> {
             userService.withdrawFunds(fundRequestDto);
         });
 
@@ -176,13 +179,13 @@ public class UserServiceTest {
     }
 
     @Test
-    void withdrawFundsShouldThrowUsernameNotFoundException(){
+    void withdrawFundsShouldThrowUserNotFoundException(){
         Mockito.when(userRepository.findByEmail("test@test.com")).thenReturn(Optional.empty());
 
         FundRequestDto fundRequestDto = new FundRequestDto();
         fundRequestDto.setAmount(new BigDecimal("100.00"));
 
-        Assertions.assertThrows(UsernameNotFoundException.class,() -> {
+        Assertions.assertThrows(UserNotFoundException.class,() -> {
             userService.withdrawFunds(fundRequestDto);
         });
 

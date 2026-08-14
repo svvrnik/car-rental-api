@@ -7,6 +7,7 @@ import com.example.car_rental_api.car.CarStatus;
 import com.example.car_rental_api.car.dto.CarRequestDto;
 import com.example.car_rental_api.car.dto.CarResponseDto;
 import com.example.car_rental_api.car.mapper.CarMapper;
+import com.example.car_rental_api.exception.*;
 import com.example.car_rental_api.user.User;
 import com.example.car_rental_api.user.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
@@ -18,6 +19,10 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -84,7 +89,7 @@ public class CarServiceTest {
     }
 
     @Test
-    void addCarShouldThrowUsernameNotFoundExceptionWhenOwnerIdDoNotExist(){
+    void addCarShouldThrowUserNotFoundExceptionWhenOwnerIdDoNotExist(){
         Mockito.when(userRepository.findByEmail("test@test.com")).thenReturn(Optional.empty());
 
         CarRequestDto testCarToAdd = new CarRequestDto();
@@ -92,7 +97,7 @@ public class CarServiceTest {
         testCarToAdd.setLicensePlate("testLicensePlate");
         testCarToAdd.setModel("testModel");
 
-        Assertions.assertThrows(UsernameNotFoundException.class,() -> {
+        Assertions.assertThrows(UserNotFoundException.class,() -> {
             carService.addCar(testCarToAdd);
         });
 
@@ -100,7 +105,7 @@ public class CarServiceTest {
     }
 
     @Test
-    void addCarShouldThrowIllegalArgumentExceptionWhenCarWithLicensePlateAlreadyExists(){
+    void addCarShouldThrowDuplicateLicensePlateExceptionWhenCarWithLicensePlateAlreadyExists(){
         User mockUser = new User();
         mockUser.setEmail("test@test.com");
         mockUser.setId(1L);
@@ -114,7 +119,7 @@ public class CarServiceTest {
 
         Mockito.when(carRepository.existsByLicensePlate("testLicensePlate")).thenReturn(true);
 
-        Assertions.assertThrows(IllegalArgumentException.class, () ->{
+        Assertions.assertThrows(DuplicateLicensePlateException.class, () ->{
             carService.addCar(testCarToAdd);
         });
 
@@ -127,13 +132,17 @@ public class CarServiceTest {
         mockCar.setId(1L);
         mockCar.setStatus(CarStatus.AVAILABLE);
 
-        Mockito.when(carRepository.findByStatus(CarStatus.AVAILABLE)).thenReturn(List.of(mockCar));
+        Pageable pageable = PageRequest.of(0,10);
+
+        Mockito.when(carRepository.findByStatus(Mockito.eq(CarStatus.AVAILABLE), Mockito.any(Pageable.class))).thenReturn(new PageImpl<>(List.of(mockCar)));
 
         Mockito.when(carMapper.carToCarResponseDto(Mockito.any(Car.class))).thenReturn(new CarResponseDto());
 
-        List<CarResponseDto> result = carService.getAvailableCars();
+        Page<CarResponseDto> result = carService.getAvailableCars(pageable);
 
-        Assertions.assertEquals(1, result.size());
+        Assertions.assertNotNull(result);
+        Assertions.assertEquals(1, result.getTotalElements());
+
     }
 
     @Test
@@ -156,10 +165,10 @@ public class CarServiceTest {
     }
 
     @Test
-    void approveCarShouldThrowEntityNotFoundException(){
+    void approveCarShouldThrowCarNotFoundException(){
         Mockito.when(carRepository.findById(1L)).thenReturn(Optional.empty());
 
-        Assertions.assertThrows(EntityNotFoundException.class, () -> {
+        Assertions.assertThrows(CarNotFoundException.class, () -> {
             carService.approveCar(1L);
         });
 
@@ -186,10 +195,10 @@ public class CarServiceTest {
     }
 
     @Test
-    void rejectCarShouldThrowEntityNotFoundException(){
+    void rejectCarShouldThrowCarNotFoundException(){
         Mockito.when(carRepository.findById(1L)).thenReturn(Optional.empty());
 
-        Assertions.assertThrows(EntityNotFoundException.class, () -> {
+        Assertions.assertThrows(CarNotFoundException.class, () -> {
             carService.rejectCar(1L);
         });
 
@@ -220,9 +229,9 @@ public class CarServiceTest {
     }
 
     @Test
-    void withdrawCarShouldThrowEntityNotFoundException(){
+    void withdrawCarShouldThrowCarNotFoundException(){
         Mockito.when(carRepository.findById(1L)).thenReturn(Optional.empty());
-        Assertions.assertThrows(EntityNotFoundException.class, () -> {
+        Assertions.assertThrows(CarNotFoundException.class, () -> {
             carService.withdrawCar(1L);
         });
 
@@ -230,7 +239,7 @@ public class CarServiceTest {
     }
 
     @Test
-    void withdrawCarShouldThrowIllegalArgumentException(){
+    void withdrawCarShouldThrowUserIsNotCarOwnerException(){
         User mockUser = new User();
         mockUser.setEmail("differentTest@test.com");
         mockUser.setId(1L);
@@ -242,14 +251,14 @@ public class CarServiceTest {
 
         Mockito.when(carRepository.findById(1L)).thenReturn(Optional.of(mockCar));
 
-        Assertions.assertThrows(IllegalArgumentException.class, () -> {
+        Assertions.assertThrows(UserIsNotCarOwnerException.class, () -> {
             carService.withdrawCar(1L);
         });
         Mockito.verify(carRepository, Mockito.never()).save(Mockito.any(Car.class));
     }
 
     @Test
-    void withdrawCarShouldThrowIllegalStateException(){
+    void withdrawCarShouldThrowCarCurrentlyRentedException(){
         User mockUser = new User();
         mockUser.setEmail("test@test.com");
         mockUser.setId(1L);
@@ -261,7 +270,7 @@ public class CarServiceTest {
 
         Mockito.when(carRepository.findById(1L)).thenReturn(Optional.of(mockCar));
 
-        Assertions.assertThrows(IllegalStateException.class, () -> {
+        Assertions.assertThrows(CarCurrentlyRentedException.class, () -> {
             carService.withdrawCar(1L);
         });
         Mockito.verify(carRepository, Mockito.never()).save(Mockito.any(Car.class));
@@ -271,13 +280,15 @@ public class CarServiceTest {
         Car mockCar = new Car();
         mockCar.setId(1L);
 
-        Mockito.when(carRepository.findByOwnerEmail("test@test.com")).thenReturn(List.of(mockCar));
+        Mockito.when(carRepository.findByOwnerEmail(Mockito.eq("test@test.com"), Mockito.any(Pageable.class))).thenReturn(new PageImpl<>(List.of(mockCar)));
         Mockito.when(carMapper.carToCarResponseDto(Mockito.any(Car.class))).thenReturn(new CarResponseDto());
 
-        List<CarResponseDto> result = carService.getUserCars();
+        Pageable pageable = PageRequest.of(0,10);
+
+        Page<CarResponseDto> result = carService.getUserCars(pageable);
 
         Assertions.assertNotNull(result);
-        Assertions.assertEquals(1, result.size());
-        Mockito.verify(carRepository, Mockito.times(1)).findByOwnerEmail("test@test.com");
+        Assertions.assertEquals(1, result.getTotalElements());
+        Mockito.verify(carRepository, Mockito.times(1)).findByOwnerEmail(Mockito.eq("test@test.com"), Mockito.any(Pageable.class));
     }
 }
