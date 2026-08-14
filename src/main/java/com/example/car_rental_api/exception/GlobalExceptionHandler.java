@@ -23,7 +23,7 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
     }
 
-    @ExceptionHandler({InsufficientFundsException.class, CarNotAvailableException.class, RentalNotActiveException.class})
+    @ExceptionHandler({InsufficientFundsException.class, CarNotAvailableException.class, RentalNotActiveException.class, InvalidFileException.class})
     public ResponseEntity<ErrorResponse> handleBadRequestExceptions(RuntimeException ex) {
         ErrorResponse errorResponse = new ErrorResponse(HttpStatus.BAD_REQUEST.value(), "Bad Request", ex.getMessage());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);

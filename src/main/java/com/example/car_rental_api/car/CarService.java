@@ -56,6 +56,10 @@ public class CarService {
             for(int i=0; i<files.length; i++){
                 MultipartFile file = files[i];
 
+                if(file.getContentType()==null || !file.getContentType().startsWith("/image")){
+                    throw new InvalidFileException("Only image files are allowed.");
+                }
+
                 String imageUrl = fileStorageService.uploadFile(file);
 
                 CarImage carImage = new CarImage();

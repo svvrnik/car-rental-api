@@ -8,6 +8,7 @@ import com.example.car_rental_api.car.dto.CarRequestDto;
 import com.example.car_rental_api.car.dto.CarResponseDto;
 import com.example.car_rental_api.car.mapper.CarMapper;
 import com.example.car_rental_api.exception.*;
+import com.example.car_rental_api.storage.FileStorageService;
 import com.example.car_rental_api.user.User;
 import com.example.car_rental_api.user.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
@@ -27,6 +28,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Optional;
@@ -39,6 +41,8 @@ public class CarServiceTest {
     private UserRepository userRepository;
     @Mock
     private CarMapper carMapper;
+    @Mock
+    private FileStorageService fileStorageService;
     @InjectMocks
     private CarService carService;
 
@@ -123,6 +127,35 @@ public class CarServiceTest {
             carService.addCar(testCarToAdd, null);
         });
 
+        Mockito.verify(carRepository, Mockito.never()).save(Mockito.any(Car.class));
+    }
+
+    @Test
+    void addCarShouldThrowInvalidFileException(){
+        User mockUser = new User();
+        mockUser.setEmail("test@test.com");
+        mockUser.setId(1L);
+
+        CarRequestDto testCarToAdd = new CarRequestDto();
+        testCarToAdd.setBrand("testBrand");
+        testCarToAdd.setLicensePlate("testLicensePlate");
+        testCarToAdd.setModel("testModel");
+
+        Mockito.when(userRepository.findByEmail("test@test.com")).thenReturn(Optional.of(mockUser));
+        Mockito.when(carRepository.existsByLicensePlate("testLicensePlate")).thenReturn(false);
+
+        Car mockCar = new Car();
+        Mockito.when(carMapper.carRequestDtoToCar(Mockito.any(CarRequestDto.class))).thenReturn(mockCar);
+
+        MultipartFile badFile = Mockito.mock(MultipartFile.class);
+        Mockito.when(badFile.getContentType()).thenReturn("application/pdf");
+        MultipartFile[] files = { badFile };
+
+        Assertions.assertThrows(InvalidFileException.class, () -> {
+            carService.addCar(testCarToAdd, files);
+        });
+
+        Mockito.verify(fileStorageService, Mockito.never()).uploadFile(Mockito.any());
         Mockito.verify(carRepository, Mockito.never()).save(Mockito.any(Car.class));
     }
 
