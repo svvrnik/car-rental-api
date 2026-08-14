@@ -81,7 +81,7 @@ public class CarServiceTest {
         expectedResponse.setId(1L);
         Mockito.when(carMapper.carToCarResponseDto(Mockito.any(Car.class))).thenReturn(expectedResponse);
 
-        CarResponseDto result = carService.addCar(testCarToAdd);
+        CarResponseDto result = carService.addCar(testCarToAdd, null);
 
         Assertions.assertNotNull(result);
         Assertions.assertEquals(1L, result.getId());
@@ -98,7 +98,7 @@ public class CarServiceTest {
         testCarToAdd.setModel("testModel");
 
         Assertions.assertThrows(UserNotFoundException.class,() -> {
-            carService.addCar(testCarToAdd);
+            carService.addCar(testCarToAdd, null);
         });
 
         Mockito.verify(carRepository, Mockito.never()).save(Mockito.any(Car.class));
@@ -120,7 +120,7 @@ public class CarServiceTest {
         Mockito.when(carRepository.existsByLicensePlate("testLicensePlate")).thenReturn(true);
 
         Assertions.assertThrows(DuplicateLicensePlateException.class, () ->{
-            carService.addCar(testCarToAdd);
+            carService.addCar(testCarToAdd, null);
         });
 
         Mockito.verify(carRepository, Mockito.never()).save(Mockito.any(Car.class));

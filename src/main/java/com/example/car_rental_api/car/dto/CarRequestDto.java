@@ -16,6 +16,8 @@ public class CarRequestDto {
     @NotNull(message = "Price per day can't be empty")
     @Positive
     private BigDecimal pricePerDay;
+    @NotBlank(message = "Description can't be empty")
+    private String description;
 
     public String getBrand() {
         return brand;
@@ -47,5 +49,13 @@ public class CarRequestDto {
 
     public void setPricePerDay(BigDecimal pricePerDay) {
         this.pricePerDay = pricePerDay;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
     }
 }

@@ -11,6 +11,7 @@ public class CarResponseDto {
     private String licensePlate;
     private BigDecimal pricePerDay;
     private CarStatus status;
+    private String description;
 
     public Long getId() {
         return id;
@@ -58,5 +59,13 @@ public class CarResponseDto {
 
     public void setStatus(CarStatus status) {
         this.status = status;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
     }
 }

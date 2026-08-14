@@ -6,11 +6,14 @@ import com.example.car_rental_api.car.dto.CarResponseDto;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.web.multipart.MultipartFile;
+
 import java.util.List;
 
 @RestController
@@ -23,9 +26,9 @@ public class CarController {
         this.carService = carService;
     }
 
-    @PostMapping("/add")
-    public ResponseEntity<CarResponseDto> addCar(@RequestBody @Valid CarRequestDto carRequestDto){
-        CarResponseDto carResponseDto = carService.addCar(carRequestDto);
+    @PostMapping(value = "/add", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<CarResponseDto> addCar(@RequestPart("car") @Valid CarRequestDto carRequestDto, @RequestPart(value = "files", required = false) MultipartFile[] files){
+        CarResponseDto carResponseDto = carService.addCar(carRequestDto, files);
         return ResponseEntity.status(HttpStatus.CREATED).body(carResponseDto);
     }
 

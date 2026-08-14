@@ -117,7 +117,12 @@
 			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
 			<version>3.1.0</version>
 		</dependency>
-
+		<dependency>
+			<groupId>software.amazon.awssdk</groupId>
+			<artifactId>s3</artifactId>
+			<version>2.52.1</version>
+			<scope>compile</scope>
+		</dependency>
 	</dependencies>
 
 	<build>

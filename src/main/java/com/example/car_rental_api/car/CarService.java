@@ -2,8 +2,10 @@ package com.example.car_rental_api.car;
 
 import com.example.car_rental_api.car.dto.CarRequestDto;
 import com.example.car_rental_api.car.dto.CarResponseDto;
+import com.example.car_rental_api.car.image.CarImage;
 import com.example.car_rental_api.car.mapper.CarMapper;
 import com.example.car_rental_api.exception.*;
+import com.example.car_rental_api.storage.FileStorageService;
 import com.example.car_rental_api.user.Role;
 import com.example.car_rental_api.user.User;
 import com.example.car_rental_api.user.UserRepository;
@@ -13,6 +15,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -22,14 +25,16 @@ public class CarService {
     private final UserRepository userRepository;
     private final CarMapper carMapper;
     private final String companyEmail;
-    public CarService(CarRepository carRepository, UserRepository userRepository, CarMapper carMapper, @Value("${app.company.email}") String companyEmail) {
+    private final FileStorageService fileStorageService;
+    public CarService(CarRepository carRepository, UserRepository userRepository, CarMapper carMapper, @Value("${app.company.email}") String companyEmail, FileStorageService fileStorageService) {
         this.carRepository = carRepository;
         this.userRepository = userRepository;
         this.carMapper = carMapper;
         this.companyEmail = companyEmail;
+        this.fileStorageService = fileStorageService;
     }
 
-    public CarResponseDto addCar(CarRequestDto carRequestDto){
+    public CarResponseDto addCar(CarRequestDto carRequestDto, MultipartFile[] files){
         String emailOfLoggedInUser = SecurityContextHolder.getContext().getAuthentication().getName();
         User foundUser = userRepository.findByEmail(emailOfLoggedInUser).orElseThrow(() -> new UserNotFoundException("User not found"));
 
@@ -45,6 +50,21 @@ public class CarService {
         }else{
             createdCar.setStatus(CarStatus.PENDING);
             foundUser.addCar(createdCar);
+        }
+
+        if(files!=null && files.length!=0){
+            for(int i=0; i<files.length; i++){
+                MultipartFile file = files[i];
+
+                String imageUrl = fileStorageService.uploadFile(file);
+
+                CarImage carImage = new CarImage();
+                carImage.setCar(createdCar);
+                carImage.setImageUrl(imageUrl);
+                carImage.setMain(i == 0);
+
+                createdCar.getImages().add(carImage);
+            }
         }
 
         Car savedCar = carRepository.save(createdCar);
