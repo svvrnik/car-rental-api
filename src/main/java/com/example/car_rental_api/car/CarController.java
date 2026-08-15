@@ -3,6 +3,8 @@ package com.example.car_rental_api.car;
 
 import com.example.car_rental_api.car.dto.CarRequestDto;
 import com.example.car_rental_api.car.dto.CarResponseDto;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
@@ -27,7 +29,7 @@ public class CarController {
     }
 
     @PostMapping(value = "/add", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<CarResponseDto> addCar(@RequestPart("car") @Valid CarRequestDto carRequestDto, @RequestPart(value = "files", required = false) MultipartFile[] files){
+    public ResponseEntity<CarResponseDto> addCar(@Parameter(content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)) @RequestPart("car") @Valid CarRequestDto carRequestDto, @RequestPart(value = "files", required = false) MultipartFile[] files){
         CarResponseDto carResponseDto = carService.addCar(carRequestDto, files);
         return ResponseEntity.status(HttpStatus.CREATED).body(carResponseDto);
     }

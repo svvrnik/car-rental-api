@@ -3,6 +3,7 @@ package com.example.car_rental_api.car.dto;
 import com.example.car_rental_api.car.CarStatus;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 public class CarResponseDto {
     private Long id;
@@ -12,6 +13,7 @@ public class CarResponseDto {
     private BigDecimal pricePerDay;
     private CarStatus status;
     private String description;
+    private List<CarImageDto> images;
 
     public Long getId() {
         return id;
@@ -67,5 +69,13 @@ public class CarResponseDto {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public List<CarImageDto> getImages() {
+        return images;
+    }
+
+    public void setImages(List<CarImageDto> images) {
+        this.images = images;
     }
 }
