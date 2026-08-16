@@ -24,6 +24,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -50,6 +51,8 @@ public class RentalServiceTest {
     private TransactionService transactionService;
     @Mock
     private RentalMapper rentalMapper;
+    @Mock
+    private RabbitTemplate rabbitTemplate;
     @InjectMocks
     private RentalService rentalService;
 

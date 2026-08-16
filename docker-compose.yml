@@ -24,6 +24,18 @@ services:
     command: server /data --console-address ":9001"
     volumes:
       - minio_data:/data
+  rabbitmq:
+    image: rabbitmq:4.3.3-management
+    container_name: car_rental_rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+  mailhog:
+    image: mailhog/mailhog
+    container_name: car_rental_mailhog
+    ports:
+      - "1025:1025"
+      - "8025:8025"
 volumes:
   postgres_data:
   minio_data:

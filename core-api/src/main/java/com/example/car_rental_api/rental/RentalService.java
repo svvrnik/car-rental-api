@@ -4,6 +4,7 @@ import com.example.car_rental_api.car.Car;
 import com.example.car_rental_api.car.CarRepository;
 import com.example.car_rental_api.car.CarStatus;
 import com.example.car_rental_api.exception.*;
+import com.example.car_rental_api.notificaton.dto.EmailNotificationDto;
 import com.example.car_rental_api.rental.dto.RentalRequestDto;
 import com.example.car_rental_api.rental.dto.RentalResponseDto;
 import com.example.car_rental_api.rental.mapper.RentalMapper;
@@ -12,6 +13,8 @@ import com.example.car_rental_api.transaction.TransactionType;
 import com.example.car_rental_api.user.User;
 import com.example.car_rental_api.user.UserRepository;
 import jakarta.transaction.Transactional;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
@@ -28,13 +31,17 @@ public class RentalService {
     private final UserRepository userRepository;
     private final TransactionService transactionService;
     private final RentalMapper rentalMapper;
+    private final RabbitTemplate rabbitTemplate;
+    private final String companyEmail;
 
-    public RentalService(RentalRepository rentalRepository, CarRepository carRepository, UserRepository userRepository, TransactionService transactionService, RentalMapper rentalMapper) {
+    public RentalService(RentalRepository rentalRepository, CarRepository carRepository, UserRepository userRepository, TransactionService transactionService, RentalMapper rentalMapper, RabbitTemplate rabbitTemplate, @Value("${app.company.email}") String companyEmail) {
         this.rentalRepository = rentalRepository;
         this.carRepository = carRepository;
         this.userRepository = userRepository;
         this.transactionService = transactionService;
         this.rentalMapper = rentalMapper;
+        this.rabbitTemplate = rabbitTemplate;
+        this.companyEmail = companyEmail;
     }
     @Transactional
     public RentalResponseDto rentCar(RentalRequestDto rentalRequestDto){
@@ -74,6 +81,20 @@ public class RentalService {
         rental.setUser(loggedUser);
         rental.setStatus(RentalStatus.ACTIVE);
         Rental savedRental = rentalRepository.save(rental);
+
+        EmailNotificationDto emailNotificationDto = new EmailNotificationDto();
+        emailNotificationDto.setFrom(companyEmail);
+        emailNotificationDto.setTo(loggedUserEmail);
+        emailNotificationDto.setSubject("Car Rental Confirmation: " + car.getBrand() + " " + car.getModel());
+        emailNotificationDto.setMessage("Hi " + loggedUser.getFirstName() + ",\n\n" +
+                "Thank you for renting a car with us! Here are the details of your reservation:\n\n" +
+                "Car: " + car.getBrand() + " " + car.getModel() + " (License plate: " + car.getLicensePlate() + ")\n" +
+                "Start date: " + rentalRequestDto.getStartDate().toLocalDate() + "\n" +
+                "End date: " + rentalRequestDto.getEndDate().toLocalDate() + "\n" +
+                "Total cost: " + priceForRentPeriod + " PLN\n\n" +
+                "Have a safe trip!\nYour Car Rental Team");
+
+        rabbitTemplate.convertAndSend("emailQueue", emailNotificationDto);
 
         return rentalMapper.rentalToRentalResponseDto(savedRental);
     }
