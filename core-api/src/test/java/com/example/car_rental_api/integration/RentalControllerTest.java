@@ -8,6 +8,7 @@ import com.example.car_rental_api.rental.Rental;
 import com.example.car_rental_api.rental.RentalRepository;
 import com.example.car_rental_api.rental.RentalStatus;
 import com.example.car_rental_api.rental.dto.RentalRequestDto;
+import com.example.car_rental_api.storage.FileStorageService;
 import com.example.car_rental_api.transaction.TransactionRepository;
 import com.example.car_rental_api.user.Role;
 import com.example.car_rental_api.user.User;
@@ -16,6 +17,7 @@ import com.example.car_rental_api.utils.JWTUtil;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import org.junit.jupiter.api.*;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
@@ -23,7 +25,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.junit.jupiter.Container;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -34,11 +38,18 @@ public class RentalControllerTest {
     @LocalServerPort
     private Integer port;
 
+    @MockitoBean
+    private FileStorageService fileStorageService;
+
+    @MockitoBean
+    private RabbitTemplate rabbitTemplate;
+
+    @Container
     static PostgreSQLContainer<?> postgreSQLContainer = new PostgreSQLContainer<>(
             "postgres:15-alpine"
     );
 
-    @BeforeAll
+   @BeforeAll
     static void beforeAll(){
         postgreSQLContainer.start();
     }

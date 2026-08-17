@@ -4,6 +4,7 @@ import static io.restassured.RestAssured.given;
 import com.example.car_rental_api.car.Car;
 import com.example.car_rental_api.car.CarRepository;
 import com.example.car_rental_api.car.CarStatus;
+import com.example.car_rental_api.storage.FileStorageService;
 import com.example.car_rental_api.transaction.TransactionRepository;
 import com.example.car_rental_api.user.Role;
 import com.example.car_rental_api.user.User;
@@ -18,6 +19,7 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.testcontainers.containers.PostgreSQLContainer;
 
 import java.math.BigDecimal;
@@ -27,6 +29,9 @@ public class CarControllerTest {
 
     @LocalServerPort
     private Integer port;
+
+    @MockitoBean
+    private FileStorageService fileStorageService;
 
     static PostgreSQLContainer<?> postgreSQLContainer = new PostgreSQLContainer<>(
             "postgres:15-alpine"
