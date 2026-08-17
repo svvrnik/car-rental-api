@@ -1,5 +1,6 @@
 package com.example.car_rental_api.exception;
 
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -25,7 +26,7 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
     }
 
-    @ExceptionHandler({InsufficientFundsException.class, CarNotAvailableException.class, RentalNotActiveException.class, InvalidFileException.class})
+    @ExceptionHandler({InsufficientFundsException.class, CarNotAvailableException.class, RentalNotActiveException.class, InvalidFileException.class, InvalidRentalPeriodException.class})
     public ResponseEntity<ErrorResponse> handleBadRequestExceptions(RuntimeException ex) {
         ErrorResponse errorResponse = new ErrorResponse(HttpStatus.BAD_REQUEST.value(), "Bad Request", ex.getMessage());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
@@ -60,5 +61,11 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleMaxUploadSizeExceededException(MaxUploadSizeExceededException ex){
         ErrorResponse errorResponse = new ErrorResponse(HttpStatus.CONTENT_TOO_LARGE.value(), "Content Too Large", "Maximum upload size excedeed!");
         return ResponseEntity.status(HttpStatus.CONTENT_TOO_LARGE).body(errorResponse);
+    }
+
+    @ExceptionHandler(OptimisticLockingFailureException.class)
+    public ResponseEntity<ErrorResponse> handleOptimisticLockingFailureException(OptimisticLockingFailureException ex){
+        ErrorResponse errorResponse = new ErrorResponse((HttpStatus.CONFLICT.value()), "Conflict", "Account was modified by another operation");
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
     }
 }

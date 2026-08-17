@@ -66,10 +66,29 @@ public class RentalServiceTest {
     }
 
     @Test
+    void rentCarShouldThrowInvalidRentalPeriodException(){
+        RentalRequestDto mockRental = new RentalRequestDto();
+        mockRental.setCarId(1L);
+        mockRental.setStartDate(LocalDateTime.now());
+        mockRental.setEndDate(LocalDateTime.now().minusDays(2));
+
+        Assertions.assertThrows(InvalidRentalPeriodException.class, () -> {
+            rentalService.rentCar(mockRental);
+        });
+
+        Mockito.verify(userRepository, Mockito.never()).save(Mockito.any(User.class));
+        Mockito.verify(transactionService, Mockito.never()).createTransaction(Mockito.any(User.class), Mockito.any(User.class), Mockito.any(BigDecimal.class), Mockito.any(TransactionType.class));
+        Mockito.verify(rentalRepository, Mockito.never()).save(Mockito.any(Rental.class));
+    }
+
+    @Test
     void rentCarShouldThrowCarNotFoundException(){
         RentalRequestDto mockRental = new RentalRequestDto();
         mockRental.setCarId(1L);
-        Mockito.when(carRepository.findById(mockRental.getCarId())).thenReturn(Optional.empty());
+        mockRental.setStartDate(LocalDateTime.now());
+        mockRental.setEndDate(LocalDateTime.now().plusDays(2));
+
+        Mockito.when(carRepository.findByIdWithLock(mockRental.getCarId())).thenReturn(Optional.empty());
 
         Assertions.assertThrows(CarNotFoundException.class, () -> {
             rentalService.rentCar(mockRental);
@@ -84,12 +103,14 @@ public class RentalServiceTest {
     void rentCarShouldThrowCarNotAvailableException(){
         RentalRequestDto mockRental = new RentalRequestDto();
         mockRental.setCarId(1L);
+        mockRental.setStartDate(LocalDateTime.now());
+        mockRental.setEndDate(LocalDateTime.now().plusDays(2));
 
         Car mockCar = new Car();
         mockCar.setId(1L);
         mockCar.setStatus(CarStatus.UNAVAILABLE);
 
-        Mockito.when(carRepository.findById(mockRental.getCarId())).thenReturn(Optional.of(mockCar));
+        Mockito.when(carRepository.findByIdWithLock(mockRental.getCarId())).thenReturn(Optional.of(mockCar));
 
         Assertions.assertThrows(CarNotAvailableException.class, () -> {
             rentalService.rentCar(mockRental);
@@ -110,7 +131,7 @@ public class RentalServiceTest {
         mockCar.setId(1L);
         mockCar.setStatus(CarStatus.AVAILABLE);
 
-        Mockito.when(carRepository.findById(mockRental.getCarId())).thenReturn(Optional.of(mockCar));
+        Mockito.when(carRepository.findByIdWithLock(mockRental.getCarId())).thenReturn(Optional.of(mockCar));
 
         Mockito.when(rentalRepository.existsOverLappingRental(Mockito.anyLong(), Mockito.any(LocalDateTime.class), Mockito.any(LocalDateTime.class))).thenReturn(true);
 
@@ -133,7 +154,7 @@ public class RentalServiceTest {
         mockCar.setId(1L);
         mockCar.setStatus(CarStatus.AVAILABLE);
 
-        Mockito.when(carRepository.findById(mockRental.getCarId())).thenReturn(Optional.of(mockCar));
+        Mockito.when(carRepository.findByIdWithLock(mockRental.getCarId())).thenReturn(Optional.of(mockCar));
 
         Mockito.when(rentalRepository.existsOverLappingRental(Mockito.anyLong(), Mockito.any(LocalDateTime.class), Mockito.any(LocalDateTime.class))).thenReturn(false);
 
@@ -161,7 +182,7 @@ public class RentalServiceTest {
         mockCar.setPricePerDay(BigDecimal.valueOf(100));
         mockCar.setOwner(new User());
 
-        Mockito.when(carRepository.findById(mockRental.getCarId())).thenReturn(Optional.of(mockCar));
+        Mockito.when(carRepository.findByIdWithLock(mockRental.getCarId())).thenReturn(Optional.of(mockCar));
 
         Mockito.when(rentalRepository.existsOverLappingRental(Mockito.anyLong(), Mockito.any(LocalDateTime.class), Mockito.any(LocalDateTime.class))).thenReturn(false);
 
@@ -197,7 +218,7 @@ public class RentalServiceTest {
         mockCar.setPricePerDay(BigDecimal.valueOf(100));
         mockCar.setOwner(mockOwner);
 
-        Mockito.when(carRepository.findById(1L)).thenReturn(Optional.of(mockCar));
+        Mockito.when(carRepository.findByIdWithLock(mockCar.getId())).thenReturn(Optional.of(mockCar));
 
         Mockito.when(rentalRepository.existsOverLappingRental(Mockito.anyLong(), Mockito.any(LocalDateTime.class), Mockito.any(LocalDateTime.class))).thenReturn(false);
 

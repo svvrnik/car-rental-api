@@ -7,7 +7,6 @@ import org.mapstruct.Mapper;
 
 @Mapper(componentModel = "spring")
 public interface CarMapper {
-    CarRequestDto carToCarRequestDto(Car car);
     CarResponseDto carToCarResponseDto(Car car);
     Car carRequestDtoToCar(CarRequestDto carRequestDto);
 

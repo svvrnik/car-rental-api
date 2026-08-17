@@ -43,9 +43,21 @@ public class RentalService {
         this.rabbitTemplate = rabbitTemplate;
         this.companyEmail = companyEmail;
     }
+
+    private BigDecimal calculateRentalCost(Car car, RentalRequestDto rentalRequestDto){
+        //calculates the cost based on calendar days
+        //convert to LocalDate to prevent situation where car is rented for 22 hours but for 2 days
+        //max because what if sb want to rent car for only x hours? between will return 0 days (and we need to count it as one day)
+        return car.getPricePerDay().multiply(BigDecimal.valueOf(Math.max(1,ChronoUnit.DAYS.between(rentalRequestDto.getStartDate().toLocalDate(), rentalRequestDto.getEndDate().toLocalDate()))));
+    }
+
     @Transactional
     public RentalResponseDto rentCar(RentalRequestDto rentalRequestDto){
-        Car car = carRepository.findById(rentalRequestDto.getCarId()).orElseThrow(() -> new CarNotFoundException("Car not found"));
+        if(!rentalRequestDto.getStartDate().isBefore(rentalRequestDto.getEndDate())){
+            throw new InvalidRentalPeriodException("Start date must be before end date");
+        }
+
+        Car car = carRepository.findByIdWithLock(rentalRequestDto.getCarId()).orElseThrow(() -> new CarNotFoundException("Car not found"));
 
         if(car.getStatus() != CarStatus.AVAILABLE){
             throw new CarNotAvailableException("Car is not available right now");
@@ -59,8 +71,7 @@ public class RentalService {
 
         User ownerOfCar = car.getOwner();
 
-        //max because what if sb want to rent car for only x hours? between will return 0 days (and we need to count it as one day)
-        BigDecimal priceForRentPeriod = car.getPricePerDay().multiply(BigDecimal.valueOf(Math.max(1,ChronoUnit.DAYS.between(rentalRequestDto.getStartDate(), rentalRequestDto.getEndDate()))));
+        BigDecimal priceForRentPeriod = calculateRentalCost(car, rentalRequestDto);
         if(priceForRentPeriod.compareTo(loggedUser.getAccountBalance())>0){
             throw new InsufficientFundsException("Insufficient funds");
         }
