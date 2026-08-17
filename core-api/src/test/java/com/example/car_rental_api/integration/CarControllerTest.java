@@ -12,6 +12,7 @@ import com.example.car_rental_api.user.UserRepository;
 import com.example.car_rental_api.utils.JWTUtil;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
+import io.restassured.specification.RequestSpecification;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -374,5 +375,74 @@ public class CarControllerTest {
                 .post("/api/cars/add")
                 .then()
                 .statusCode(HttpStatus.CONFLICT.value());
+    }
+
+    @Test
+    void addCarShouldReturnBadRequestWhenFileHasInvalidType(){
+        User owner = new User();
+        owner.setEmail("test@test.com");
+        owner.setPassword("password123");
+        owner.setRole(Role.USER);
+        owner.setFirstName("TestFirstName");
+        owner.setLastName("TestLastName");
+        owner.setAccountBalance(BigDecimal.ZERO);
+        userRepository.save(owner);
+
+        String token = jwtUtil.generateToken(owner.getEmail());
+
+        String carJson = "{" +
+                "\"brand\":\"testBrand\"," +
+                "\"model\":\"testModel\"," +
+                "\"licensePlate\":\"TEST-PLATE\"," +
+                "\"pricePerDay\":100," +
+                "\"description\":\"testDescription\"" +
+                "}";
+
+        given()
+                .header("Authorization", "Bearer " + token)
+                .contentType(ContentType.MULTIPART)
+                .multiPart("car", carJson, "application/json")
+                .multiPart("files", "badFile.exe", "fake content".getBytes(), "application/exe")
+                .when()
+                .post("/api/cars/add")
+                .then()
+                .statusCode(HttpStatus.BAD_REQUEST.value());
+    }
+
+    @Test
+    void addCarShouldReturnBadRequestWhenTooManyFilesProvided(){
+        User owner = new User();
+        owner.setEmail("test@test.com");
+        owner.setPassword("password123");
+        owner.setRole(Role.USER);
+        owner.setFirstName("TestFirstName");
+        owner.setLastName("TestLastName");
+        owner.setAccountBalance(BigDecimal.ZERO);
+        userRepository.save(owner);
+
+        String token = jwtUtil.generateToken(owner.getEmail());
+
+        String carJson = "{" +
+                "\"brand\":\"testBrand\"," +
+                "\"model\":\"testModel\"," +
+                "\"licensePlate\":\"TEST-PLATE\"," +
+                "\"pricePerDay\":100," +
+                "\"description\":\"testDescription\"" +
+                "}";
+
+        io.restassured.specification.RequestSpecification request = given()
+                .header("Authorization", "Bearer " + token)
+                .contentType(ContentType.MULTIPART)
+                .multiPart("car", carJson, "application/json");
+
+        for (int i = 0; i < 11; i++) {
+            request.multiPart("files", "image" + i + ".jpg", "fake-image".getBytes(), "image/jpeg");
+        }
+
+        request
+                .when()
+                .post("/api/cars/add")
+                .then()
+                .statusCode(HttpStatus.BAD_REQUEST.value());
     }
 }

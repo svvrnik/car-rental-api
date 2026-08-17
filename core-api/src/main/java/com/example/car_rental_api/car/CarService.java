@@ -17,6 +17,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -26,6 +27,7 @@ public class CarService {
     private final CarMapper carMapper;
     private final String companyEmail;
     private final FileStorageService fileStorageService;
+    private static final long MAX_FILE_SIZE = 10 * 1024 * 1024;
     public CarService(CarRepository carRepository, UserRepository userRepository, CarMapper carMapper, @Value("${app.company.email}") String companyEmail, FileStorageService fileStorageService) {
         this.carRepository = carRepository;
         this.userRepository = userRepository;
@@ -52,28 +54,54 @@ public class CarService {
             foundUser.addCar(createdCar);
         }
 
-        if(files!=null && files.length!=0){
-            for(int i=0; i<files.length; i++){
-                MultipartFile file = files[i];
-
-                if(file.getContentType()==null || !file.getContentType().startsWith("image/")){
-                    throw new InvalidFileException("Only image files are allowed.");
-                }
-
-                String imageUrl = fileStorageService.uploadFile(file);
-
-                CarImage carImage = new CarImage();
-                carImage.setCar(createdCar);
-                carImage.setImageUrl(imageUrl);
-                carImage.setMain(i == 0);
-
-                createdCar.getImages().add(carImage);
-            }
+        if(files != null && files.length > 10) {
+            throw new InvalidFileException("You can upload a maximum of 10 images");
         }
 
-        Car savedCar = carRepository.save(createdCar);
+        List<String> uploadedFilesNames = new ArrayList<>();
+        try{
+            if(files!=null && files.length!=0){
+                for(int i=0; i<files.length; i++){
+                    MultipartFile file = files[i];
 
-        return carMapper.carToCarResponseDto(savedCar);
+                    if(file.isEmpty()){
+                        throw new InvalidFileException("File cannot be empty.");
+                    }
+
+                    List<String> allowedContentTypes = List.of("image/jpeg", "image/png", "image/webp");
+
+                    if(file.getContentType()==null || !allowedContentTypes.contains(file.getContentType()) || !fileStorageService.hasValidExtension(file.getOriginalFilename())){
+                        throw new InvalidFileException("Only JPEG, PNG and WEBP files are allowed.");
+                    }
+
+                    if(file.getSize()>MAX_FILE_SIZE){
+                        throw new InvalidFileException("Each file must be smaller than 10MB");
+                    }
+
+                    String imageName = fileStorageService.uploadFile(file);
+                    String imageUrl = fileStorageService.createUrlForFile(imageName);
+
+                    CarImage carImage = new CarImage();
+                    carImage.setCar(createdCar);
+                    carImage.setImageUrl(imageUrl);
+                    carImage.setMain(i == 0);
+
+                    createdCar.getImages().add(carImage);
+                    uploadedFilesNames.add(imageName);
+                }
+            }
+
+            Car savedCar = carRepository.save(createdCar);
+
+            return carMapper.carToCarResponseDto(savedCar);
+        }catch(Exception e){
+            try{
+                fileStorageService.deleteFiles(uploadedFilesNames);
+            }catch(Exception deleteFilesException){
+                e.addSuppressed(deleteFilesException);
+            }
+            throw e;
+        }
     }
 
     public Page<CarResponseDto> getAvailableCars(Pageable pageable){

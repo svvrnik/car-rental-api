@@ -131,7 +131,34 @@ public class CarServiceTest {
     }
 
     @Test
-    void addCarShouldThrowInvalidFileException(){
+    void addCarShouldThrowInvalidFileExceptionWhenTooManyImages(){
+        User mockUser = new User();
+        mockUser.setEmail("test@test.com");
+        mockUser.setId(1L);
+
+        CarRequestDto testCarToAdd = new CarRequestDto();
+        testCarToAdd.setBrand("testBrand");
+        testCarToAdd.setLicensePlate("testLicensePlate");
+        testCarToAdd.setModel("testModel");
+
+        Mockito.when(userRepository.findByEmail("test@test.com")).thenReturn(Optional.of(mockUser));
+        Mockito.when(carRepository.existsByLicensePlate("testLicensePlate")).thenReturn(false);
+
+        Car mockCar = new Car();
+        Mockito.when(carMapper.carRequestDtoToCar(Mockito.any(CarRequestDto.class))).thenReturn(mockCar);
+
+        MultipartFile[] files = new MultipartFile[11];
+
+        Assertions.assertThrows(InvalidFileException.class, () -> {
+            carService.addCar(testCarToAdd, files);
+        });
+
+        Mockito.verify(fileStorageService, Mockito.never()).uploadFile(Mockito.any());
+        Mockito.verify(carRepository, Mockito.never()).save(Mockito.any(Car.class));
+    }
+
+    @Test
+    void addCarShouldThrowInvalidFileExceptionWhenFileIsEmpty(){
         User mockUser = new User();
         mockUser.setEmail("test@test.com");
         mockUser.setId(1L);
@@ -148,6 +175,36 @@ public class CarServiceTest {
         Mockito.when(carMapper.carRequestDtoToCar(Mockito.any(CarRequestDto.class))).thenReturn(mockCar);
 
         MultipartFile badFile = Mockito.mock(MultipartFile.class);
+        Mockito.when(badFile.isEmpty()).thenReturn(true);
+        MultipartFile[] files = { badFile };
+
+        Assertions.assertThrows(InvalidFileException.class, () -> {
+            carService.addCar(testCarToAdd, files);
+        });
+
+        Mockito.verify(fileStorageService, Mockito.never()).uploadFile(Mockito.any());
+        Mockito.verify(carRepository, Mockito.never()).save(Mockito.any(Car.class));
+    }
+
+    @Test
+    void addCarShouldThrowInvalidFileExceptionWhenFileHasNotAllowedType(){
+        User mockUser = new User();
+        mockUser.setEmail("test@test.com");
+        mockUser.setId(1L);
+
+        CarRequestDto testCarToAdd = new CarRequestDto();
+        testCarToAdd.setBrand("testBrand");
+        testCarToAdd.setLicensePlate("testLicensePlate");
+        testCarToAdd.setModel("testModel");
+
+        Mockito.when(userRepository.findByEmail("test@test.com")).thenReturn(Optional.of(mockUser));
+        Mockito.when(carRepository.existsByLicensePlate("testLicensePlate")).thenReturn(false);
+
+        Car mockCar = new Car();
+        Mockito.when(carMapper.carRequestDtoToCar(Mockito.any(CarRequestDto.class))).thenReturn(mockCar);
+
+        MultipartFile badFile = Mockito.mock(MultipartFile.class);
+        Mockito.when(badFile.isEmpty()).thenReturn(false);
         Mockito.when(badFile.getContentType()).thenReturn("application/pdf");
         MultipartFile[] files = { badFile };
 
@@ -157,6 +214,125 @@ public class CarServiceTest {
 
         Mockito.verify(fileStorageService, Mockito.never()).uploadFile(Mockito.any());
         Mockito.verify(carRepository, Mockito.never()).save(Mockito.any(Car.class));
+    }
+
+    @Test
+    void addCarShouldThrowInvalidFileExceptionWhenFileHasNotAllowedExtension(){
+        User mockUser = new User();
+        mockUser.setEmail("test@test.com");
+        mockUser.setId(1L);
+
+        CarRequestDto testCarToAdd = new CarRequestDto();
+        testCarToAdd.setBrand("testBrand");
+        testCarToAdd.setLicensePlate("testLicensePlate");
+        testCarToAdd.setModel("testModel");
+
+        Mockito.when(userRepository.findByEmail("test@test.com")).thenReturn(Optional.of(mockUser));
+        Mockito.when(carRepository.existsByLicensePlate("testLicensePlate")).thenReturn(false);
+
+        Car mockCar = new Car();
+        Mockito.when(carMapper.carRequestDtoToCar(Mockito.any(CarRequestDto.class))).thenReturn(mockCar);
+
+        MultipartFile badFile = Mockito.mock(MultipartFile.class);
+        Mockito.when(badFile.isEmpty()).thenReturn(false);
+        Mockito.when(badFile.getContentType()).thenReturn("image/jpeg");
+        Mockito.when(badFile.getOriginalFilename()).thenReturn("file.exe");
+
+        Mockito.when(fileStorageService.hasValidExtension("file.exe")).thenReturn(false);
+
+        MultipartFile[] files = { badFile };
+
+        Assertions.assertThrows(InvalidFileException.class, () -> {
+            carService.addCar(testCarToAdd, files);
+        });
+
+        Mockito.verify(fileStorageService, Mockito.never()).uploadFile(Mockito.any());
+        Mockito.verify(carRepository, Mockito.never()).save(Mockito.any(Car.class));
+    }
+
+    @Test
+    void addCarShouldThrowInvalidFileExceptionWhenFileIsTooBig(){
+        User mockUser = new User();
+        mockUser.setEmail("test@test.com");
+        mockUser.setId(1L);
+
+        CarRequestDto testCarToAdd = new CarRequestDto();
+        testCarToAdd.setBrand("testBrand");
+        testCarToAdd.setLicensePlate("testLicensePlate");
+        testCarToAdd.setModel("testModel");
+
+        Mockito.when(userRepository.findByEmail("test@test.com")).thenReturn(Optional.of(mockUser));
+        Mockito.when(carRepository.existsByLicensePlate("testLicensePlate")).thenReturn(false);
+
+        Car mockCar = new Car();
+        Mockito.when(carMapper.carRequestDtoToCar(Mockito.any(CarRequestDto.class))).thenReturn(mockCar);
+
+        MultipartFile badFile = Mockito.mock(MultipartFile.class);
+
+        Mockito.when(badFile.isEmpty()).thenReturn(false);
+        Mockito.when(badFile.getContentType()).thenReturn("image/jpeg");
+        Mockito.when(badFile.getOriginalFilename()).thenReturn("file.jpeg");
+        Mockito.when(fileStorageService.hasValidExtension(Mockito.anyString())).thenReturn(true);
+        Mockito.when(badFile.getSize()).thenReturn(11L*1024*1024);
+
+        MultipartFile[] files = { badFile };
+
+        Assertions.assertThrows(InvalidFileException.class, () -> {
+            carService.addCar(testCarToAdd, files);
+        });
+
+        Mockito.verify(fileStorageService, Mockito.never()).uploadFile(Mockito.any());
+        Mockito.verify(carRepository, Mockito.never()).save(Mockito.any(Car.class));
+    }
+
+    @Test
+    void addCarShouldDeleteUploadedFilesWhenDatabaseSaveFails(){
+        User mockUser = new User();
+        mockUser.setEmail("test@test.com");
+        mockUser.setId(1L);
+
+        CarRequestDto testCarToAdd = new CarRequestDto();
+        testCarToAdd.setBrand("testBrand");
+        testCarToAdd.setLicensePlate("testLicensePlate");
+        testCarToAdd.setModel("testModel");
+
+        Mockito.when(userRepository.findByEmail("test@test.com")).thenReturn(Optional.of(mockUser));
+        Mockito.when(carRepository.existsByLicensePlate("testLicensePlate")).thenReturn(false);
+
+        Car mockCar = new Car();
+        Mockito.when(carMapper.carRequestDtoToCar(Mockito.any(CarRequestDto.class))).thenReturn(mockCar);
+
+        MultipartFile file1 = Mockito.mock(MultipartFile.class);
+        MultipartFile file2 = Mockito.mock(MultipartFile.class);
+
+        Mockito.when(fileStorageService.hasValidExtension(Mockito.anyString())).thenReturn(true);
+
+        Mockito.when(file1.isEmpty()).thenReturn(false);
+        Mockito.when(file1.getContentType()).thenReturn("image/jpeg");
+        Mockito.when(file1.getOriginalFilename()).thenReturn("file.jpeg");
+        Mockito.when(file1.getSize()).thenReturn(1L);
+
+        Mockito.when(file2.isEmpty()).thenReturn(false);
+        Mockito.when(file2.getContentType()).thenReturn("image/jpeg");
+        Mockito.when(file2.getOriginalFilename()).thenReturn("file.jpeg");
+        Mockito.when(file2.getSize()).thenReturn(1L);
+
+        Mockito.when(fileStorageService.uploadFile(file1))
+                .thenReturn("file1.jpg");
+        Mockito.when(fileStorageService.uploadFile(file2))
+                .thenReturn("file2.jpg");
+
+        MultipartFile[] files = { file1, file2 };
+
+        Mockito.when(carRepository.save(Mockito.any(Car.class)))
+                .thenThrow(new RuntimeException("DB failed"));
+
+        Assertions.assertThrows(RuntimeException.class, () -> {
+            carService.addCar(testCarToAdd, files);
+        });
+
+        Mockito.verify(fileStorageService)
+                .deleteFiles(List.of("file1.jpg", "file2.jpg"));
     }
 
     @Test
