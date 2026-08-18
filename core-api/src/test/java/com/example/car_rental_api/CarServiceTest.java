@@ -336,6 +336,56 @@ public class CarServiceTest {
     }
 
     @Test
+    void addCarShouldDeleteUploadedFilesWhenUploadFails(){
+        User mockUser = new User();
+        mockUser.setEmail("test@test.com");
+        mockUser.setId(1L);
+
+        CarRequestDto testCarToAdd = new CarRequestDto();
+        testCarToAdd.setBrand("testBrand");
+        testCarToAdd.setLicensePlate("testLicensePlate");
+        testCarToAdd.setModel("testModel");
+
+        Mockito.when(userRepository.findByEmail("test@test.com")).thenReturn(Optional.of(mockUser));
+        Mockito.when(carRepository.existsByLicensePlate("testLicensePlate")).thenReturn(false);
+
+        Car mockCar = new Car();
+        Mockito.when(carMapper.carRequestDtoToCar(Mockito.any(CarRequestDto.class))).thenReturn(mockCar);
+
+        MultipartFile file1 = Mockito.mock(MultipartFile.class);
+        MultipartFile file2 = Mockito.mock(MultipartFile.class);
+
+        Mockito.when(fileStorageService.hasValidExtension(Mockito.anyString())).thenReturn(true);
+
+        Mockito.when(file1.isEmpty()).thenReturn(false);
+        Mockito.when(file1.getContentType()).thenReturn("image/jpeg");
+        Mockito.when(file1.getOriginalFilename()).thenReturn("file.jpeg");
+        Mockito.when(file1.getSize()).thenReturn(1L);
+
+        Mockito.when(file2.isEmpty()).thenReturn(false);
+        Mockito.when(file2.getContentType()).thenReturn("image/jpeg");
+        Mockito.when(file2.getOriginalFilename()).thenReturn("file.jpeg");
+        Mockito.when(file2.getSize()).thenReturn(1L);
+
+        Mockito.when(fileStorageService.uploadFile(file1))
+                .thenReturn("file1.jpg");
+        Mockito.when(fileStorageService.uploadFile(file2))
+                .thenThrow(new RuntimeException("Upload file failed"));
+
+        MultipartFile[] files = { file1, file2 };
+
+
+        Assertions.assertThrows(RuntimeException.class, () -> {
+            carService.addCar(testCarToAdd, files);
+        });
+
+        Mockito.verify(fileStorageService)
+                .deleteFiles(List.of("file1.jpg"));
+
+        Mockito.verify(carRepository, Mockito.never()).save(Mockito.any(Car.class));
+    }
+
+    @Test
     void getAvailableCarsShouldReturnListOfCarsWithAvailableStatus(){
         Car mockCar = new Car();
         mockCar.setId(1L);
