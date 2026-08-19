@@ -3,9 +3,12 @@ package com.example.car_rental_api.rental;
 import com.example.car_rental_api.rental.dto.RentalRequestDto;
 import com.example.car_rental_api.rental.dto.RentalResponseDto;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import org.springframework.data.domain.Page;
@@ -14,6 +17,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/rentals")
+@Validated
 public class RentalController {
     private final RentalService rentalService;
 
@@ -35,7 +39,7 @@ public class RentalController {
     }
 
     @GetMapping("/my-rentals")
-    public ResponseEntity<Page<RentalResponseDto>> getUserRentals(@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size){
+    public ResponseEntity<Page<RentalResponseDto>> getUserRentals(@RequestParam(defaultValue = "0") @Min(value = 0, message = "Page index must not be less than 0") int page, @RequestParam(defaultValue = "10") @Min(value = 1, message = "Size must not be less than 1") @Max(value = 100, message = "Max page size is 100") int size){
         Pageable pageable = PageRequest.of(page, size);
         Page<RentalResponseDto> userRentals = rentalService.getUserRentals(pageable);
         return ResponseEntity.status(HttpStatus.OK).body(userRentals);

@@ -1,5 +1,6 @@
 package com.example.car_rental_api.exception;
 
+import jakarta.validation.ConstraintViolationException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -26,7 +27,7 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
     }
 
-    @ExceptionHandler({InsufficientFundsException.class, CarNotAvailableException.class, RentalNotActiveException.class, InvalidFileException.class, InvalidRentalPeriodException.class})
+    @ExceptionHandler({InsufficientFundsException.class, CarNotAvailableException.class, RentalNotActiveException.class, InvalidFileException.class, InvalidRentalPeriodException.class, ConstraintViolationException.class})
     public ResponseEntity<ErrorResponse> handleBadRequestExceptions(RuntimeException ex) {
         ErrorResponse errorResponse = new ErrorResponse(HttpStatus.BAD_REQUEST.value(), "Bad Request", ex.getMessage());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);

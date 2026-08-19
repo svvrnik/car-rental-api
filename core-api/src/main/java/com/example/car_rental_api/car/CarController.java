@@ -6,10 +6,13 @@ import com.example.car_rental_api.car.dto.CarResponseDto;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import org.springframework.data.domain.Page;
@@ -20,6 +23,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/cars")
+@Validated
 public class CarController {
     private final CarService carService;
 
@@ -35,14 +39,14 @@ public class CarController {
     }
 
     @GetMapping("/my-cars")
-    public ResponseEntity<Page<CarResponseDto>> getUserCars(@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size){
+    public ResponseEntity<Page<CarResponseDto>> getUserCars(@RequestParam(defaultValue = "0") @Min(value = 0, message = "Page index must not be less than 0") int page, @RequestParam(defaultValue = "10") @Min(value = 1, message = "Size must not be less than 1") @Max(value = 100, message = "Max page size is 100") int size){
         Pageable pageable = PageRequest.of(page, size);
         Page<CarResponseDto> userCars = carService.getUserCars(pageable);
         return ResponseEntity.status(HttpStatus.OK).body(userCars);
     }
 
     @GetMapping("/available")
-    public ResponseEntity<Page<CarResponseDto>> getAvailableCars(@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size){
+    public ResponseEntity<Page<CarResponseDto>> getAvailableCars(@RequestParam(defaultValue = "0") @Min(value = 0, message = "Page index must not be less than 0") int page, @RequestParam(defaultValue = "10") @Min(value = 1, message = "Size must not be less than 1") @Max(value = 100, message = "Max page size is 100") int size){
         Pageable pageable = PageRequest.of(page,size);
         Page<CarResponseDto> availableCars = carService.getAvailableCars(pageable);
         return ResponseEntity.status(HttpStatus.OK).body(availableCars);
