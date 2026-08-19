@@ -4,6 +4,7 @@ import com.example.car_rental_api.car.Car;
 import com.example.car_rental_api.car.CarRepository;
 import com.example.car_rental_api.car.CarStatus;
 import com.example.car_rental_api.exception.*;
+import com.example.car_rental_api.payment.PaymentService;
 import com.example.car_rental_api.rental.Rental;
 import com.example.car_rental_api.rental.RentalRepository;
 import com.example.car_rental_api.rental.RentalService;
@@ -11,11 +12,8 @@ import com.example.car_rental_api.rental.RentalStatus;
 import com.example.car_rental_api.rental.dto.RentalRequestDto;
 import com.example.car_rental_api.rental.dto.RentalResponseDto;
 import com.example.car_rental_api.rental.mapper.RentalMapper;
-import com.example.car_rental_api.transaction.TransactionService;
-import com.example.car_rental_api.transaction.TransactionType;
 import com.example.car_rental_api.user.User;
 import com.example.car_rental_api.user.UserRepository;
-import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -32,7 +30,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -48,11 +45,11 @@ public class RentalServiceTest {
     @Mock
     private UserRepository userRepository;
     @Mock
-    private TransactionService transactionService;
-    @Mock
     private RentalMapper rentalMapper;
     @Mock
     private RabbitTemplate rabbitTemplate;
+    @Mock
+    private PaymentService paymentService;
     @InjectMocks
     private RentalService rentalService;
 
@@ -76,8 +73,6 @@ public class RentalServiceTest {
             rentalService.rentCar(mockRental);
         });
 
-        Mockito.verify(userRepository, Mockito.never()).save(Mockito.any(User.class));
-        Mockito.verify(transactionService, Mockito.never()).createTransaction(Mockito.any(User.class), Mockito.any(User.class), Mockito.any(BigDecimal.class), Mockito.any(TransactionType.class));
         Mockito.verify(rentalRepository, Mockito.never()).save(Mockito.any(Rental.class));
     }
 
@@ -94,8 +89,6 @@ public class RentalServiceTest {
             rentalService.rentCar(mockRental);
         });
 
-        Mockito.verify(userRepository, Mockito.never()).save(Mockito.any(User.class));
-        Mockito.verify(transactionService, Mockito.never()).createTransaction(Mockito.any(User.class), Mockito.any(User.class), Mockito.any(BigDecimal.class), Mockito.any(TransactionType.class));
         Mockito.verify(rentalRepository, Mockito.never()).save(Mockito.any(Rental.class));
     }
 
@@ -115,8 +108,6 @@ public class RentalServiceTest {
         Assertions.assertThrows(CarNotAvailableException.class, () -> {
             rentalService.rentCar(mockRental);
         });
-        Mockito.verify(userRepository, Mockito.never()).save(Mockito.any(User.class));
-        Mockito.verify(transactionService, Mockito.never()).createTransaction(Mockito.any(User.class), Mockito.any(User.class), Mockito.any(BigDecimal.class), Mockito.any(TransactionType.class));
         Mockito.verify(rentalRepository, Mockito.never()).save(Mockito.any(Rental.class));
     }
 
@@ -138,8 +129,7 @@ public class RentalServiceTest {
         Assertions.assertThrows(OverlappingRentalException.class, () -> {
             rentalService.rentCar(mockRental);
         });
-        Mockito.verify(userRepository, Mockito.never()).save(Mockito.any(User.class));
-        Mockito.verify(transactionService, Mockito.never()).createTransaction(Mockito.any(User.class), Mockito.any(User.class), Mockito.any(BigDecimal.class), Mockito.any(TransactionType.class));
+
         Mockito.verify(rentalRepository, Mockito.never()).save(Mockito.any(Rental.class));
     }
 
@@ -164,8 +154,6 @@ public class RentalServiceTest {
             rentalService.rentCar(mockRental);
         });
 
-        Mockito.verify(userRepository, Mockito.never()).save(Mockito.any(User.class));
-        Mockito.verify(transactionService, Mockito.never()).createTransaction(Mockito.any(User.class), Mockito.any(User.class), Mockito.any(BigDecimal.class), Mockito.any(TransactionType.class));
         Mockito.verify(rentalRepository, Mockito.never()).save(Mockito.any(Rental.class));
     }
 
@@ -193,12 +181,12 @@ public class RentalServiceTest {
 
         Mockito.when(userRepository.findByEmail("test@test.com")).thenReturn(Optional.of(mockUser));
 
+        Mockito.doThrow(new InsufficientFundsException("Insufficient funds")).when(paymentService).transferFundsForRental(Mockito.any(User.class), Mockito.any(User.class), Mockito.any(BigDecimal.class));
+
         Assertions.assertThrows(InsufficientFundsException.class, () -> {
             rentalService.rentCar(mockRental);
         });
 
-        Mockito.verify(userRepository, Mockito.never()).save(Mockito.any(User.class));
-        Mockito.verify(transactionService, Mockito.never()).createTransaction(Mockito.any(User.class), Mockito.any(User.class), Mockito.any(BigDecimal.class), Mockito.any(TransactionType.class));
         Mockito.verify(rentalRepository, Mockito.never()).save(Mockito.any(Rental.class));
     }
     @Test
@@ -238,13 +226,10 @@ public class RentalServiceTest {
         Assertions.assertNotNull(result);
         Assertions.assertEquals(expectedResponse, result);
 
-        Mockito.verify(userRepository, Mockito.times(2)).save(Mockito.any(User.class));
-
-        Mockito.verify(transactionService, Mockito.times(1)).createTransaction(
+        Mockito.verify(paymentService, Mockito.times(1)).transferFundsForRental(
                 Mockito.eq(mockLoggedUser),
                 Mockito.eq(mockOwner),
-                Mockito.eq(BigDecimal.valueOf(200)),
-                Mockito.eq(TransactionType.RENTAL_PAYMENT)
+                Mockito.eq(BigDecimal.valueOf(200))
         );
 
         Mockito.verify(rentalRepository, Mockito.times(1)).save(Mockito.any(Rental.class));

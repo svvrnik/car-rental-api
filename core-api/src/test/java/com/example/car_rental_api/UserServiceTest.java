@@ -3,8 +3,7 @@ package com.example.car_rental_api;
 import com.example.car_rental_api.exception.EmailAlreadyInUseException;
 import com.example.car_rental_api.exception.InsufficientFundsException;
 import com.example.car_rental_api.exception.UserNotFoundException;
-import com.example.car_rental_api.transaction.TransactionService;
-import com.example.car_rental_api.transaction.TransactionType;
+import com.example.car_rental_api.payment.PaymentService;
 import com.example.car_rental_api.user.User;
 import com.example.car_rental_api.user.UserRepository;
 import com.example.car_rental_api.user.UserService;
@@ -12,7 +11,6 @@ import com.example.car_rental_api.user.dto.FundRequestDto;
 import com.example.car_rental_api.user.dto.UserRegisterDto;
 import com.example.car_rental_api.user.dto.UserResponseDto;
 import com.example.car_rental_api.user.mapper.UserMapper;
-import io.jsonwebtoken.lang.Assert;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -24,7 +22,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.math.BigDecimal;
@@ -39,7 +36,7 @@ public class UserServiceTest {
     @Mock
     private PasswordEncoder passwordEncoder;
     @Mock
-    private TransactionService transactionService;
+    private PaymentService paymentService;
     @InjectMocks
     private UserService userService;
 
@@ -103,17 +100,15 @@ public class UserServiceTest {
         expectedResponse.setAccountBalance(new BigDecimal("100.00"));
 
         Mockito.when(userRepository.findByEmail("test@test.com")).thenReturn(Optional.of(mockUser));
-        Mockito.when(userRepository.save(Mockito.any(User.class))).thenReturn(mockUser);
+        Mockito.when(paymentService.addFundsToUserAccount(Mockito.any(User.class), Mockito.any(BigDecimal.class))).thenReturn(mockUser);
         Mockito.when(userMapper.userToUserResponseDto(Mockito.any(User.class))).thenReturn(expectedResponse);
 
         UserResponseDto result = userService.addFunds(fundRequestDto);
 
         Assertions.assertNotNull(result);
-        Assertions.assertEquals(new BigDecimal("100.00"), mockUser.getAccountBalance());
         Assertions.assertEquals(new BigDecimal("100.00"), result.getAccountBalance());
 
-        Mockito.verify(userRepository, Mockito.times(1)).save(mockUser);
-        Mockito.verify(transactionService, Mockito.times(1)).createTransaction(null, mockUser, new BigDecimal("100.00"), TransactionType.DEPOSIT);
+       Mockito.verify(paymentService, Mockito.times(1)).addFundsToUserAccount(mockUser, new BigDecimal("100.00"));
     }
 
     @Test
@@ -127,9 +122,7 @@ public class UserServiceTest {
             userService.addFunds(fundRequestDto);
         });
 
-        Mockito.verify(userRepository, Mockito.never()).save(Mockito.any(User.class));
-
-        Mockito.verify(transactionService, Mockito.never()).createTransaction(Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any());
+        Mockito.verify(paymentService, Mockito.never()).addFundsToUserAccount(Mockito.any(User.class), Mockito.any(BigDecimal.class));
     }
 
     @Test
@@ -146,17 +139,15 @@ public class UserServiceTest {
         expectedResponse.setAccountBalance(new BigDecimal("150.00"));
 
         Mockito.when(userRepository.findByEmail("test@test.com")).thenReturn(Optional.of(mockUser));
-        Mockito.when(userRepository.save(Mockito.any(User.class))).thenReturn(mockUser);
+        Mockito.when(paymentService.withdrawFundsFromUserAccount(Mockito.any(User.class), Mockito.any(BigDecimal.class))).thenReturn(mockUser);
         Mockito.when(userMapper.userToUserResponseDto(Mockito.any(User.class))).thenReturn(expectedResponse);
 
         UserResponseDto result = userService.withdrawFunds(fundRequestDto);
 
         Assertions.assertNotNull(result);
-        Assertions.assertEquals(new BigDecimal("150.00"), mockUser.getAccountBalance());
         Assertions.assertEquals(new BigDecimal("150.00"), result.getAccountBalance());
 
-        Mockito.verify(userRepository, Mockito.times(1)).save(mockUser);
-        Mockito.verify(transactionService, Mockito.times(1)).createTransaction(mockUser, null, new BigDecimal("50.00"), TransactionType.PAYOUT);
+        Mockito.verify(paymentService, Mockito.times(1)).withdrawFundsFromUserAccount(mockUser, new BigDecimal("50.00"));
     }
     @Test
     void withdrawFundsShouldThrowInsufficientFundsException(){
@@ -167,15 +158,14 @@ public class UserServiceTest {
 
         Mockito.when(userRepository.findByEmail("test@test.com")).thenReturn(Optional.of(mockUser));
 
+        Mockito.when(paymentService.withdrawFundsFromUserAccount(Mockito.any(User.class), Mockito.any(BigDecimal.class))).thenThrow(new InsufficientFundsException("Insufficient funds"));
+
         FundRequestDto fundRequestDto = new FundRequestDto();
         fundRequestDto.setAmount(new BigDecimal("100.00"));
 
         Assertions.assertThrows(InsufficientFundsException.class,() -> {
             userService.withdrawFunds(fundRequestDto);
         });
-
-        Mockito.verify(userRepository, Mockito.never()).save(Mockito.any(User.class));
-        Mockito.verify(transactionService, Mockito.never()).createTransaction(Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any());
     }
 
     @Test
@@ -190,6 +180,5 @@ public class UserServiceTest {
         });
 
         Mockito.verify(userRepository, Mockito.never()).save(Mockito.any(User.class));
-        Mockito.verify(transactionService, Mockito.never()).createTransaction(Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any());
     }
 }

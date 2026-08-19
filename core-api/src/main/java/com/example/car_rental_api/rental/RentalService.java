@@ -5,11 +5,10 @@ import com.example.car_rental_api.car.CarRepository;
 import com.example.car_rental_api.car.CarStatus;
 import com.example.car_rental_api.exception.*;
 import com.example.car_rental_api.notificaton.dto.EmailNotificationDto;
+import com.example.car_rental_api.payment.PaymentService;
 import com.example.car_rental_api.rental.dto.RentalRequestDto;
 import com.example.car_rental_api.rental.dto.RentalResponseDto;
 import com.example.car_rental_api.rental.mapper.RentalMapper;
-import com.example.car_rental_api.transaction.TransactionService;
-import com.example.car_rental_api.transaction.TransactionType;
 import com.example.car_rental_api.user.User;
 import com.example.car_rental_api.user.UserRepository;
 import jakarta.transaction.Transactional;
@@ -22,26 +21,25 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import java.math.BigDecimal;
 import java.time.temporal.ChronoUnit;
-import java.util.List;
 
 @Service
 public class RentalService {
     private final RentalRepository rentalRepository;
     private final CarRepository carRepository;
     private final UserRepository userRepository;
-    private final TransactionService transactionService;
     private final RentalMapper rentalMapper;
     private final RabbitTemplate rabbitTemplate;
     private final String companyEmail;
+    private final PaymentService paymentService;
 
-    public RentalService(RentalRepository rentalRepository, CarRepository carRepository, UserRepository userRepository, TransactionService transactionService, RentalMapper rentalMapper, RabbitTemplate rabbitTemplate, @Value("${app.company.email}") String companyEmail) {
+    public RentalService(RentalRepository rentalRepository, CarRepository carRepository, UserRepository userRepository, RentalMapper rentalMapper, RabbitTemplate rabbitTemplate, @Value("${app.company.email}") String companyEmail, PaymentService paymentService) {
         this.rentalRepository = rentalRepository;
         this.carRepository = carRepository;
         this.userRepository = userRepository;
-        this.transactionService = transactionService;
         this.rentalMapper = rentalMapper;
         this.rabbitTemplate = rabbitTemplate;
         this.companyEmail = companyEmail;
+        this.paymentService = paymentService;
     }
 
     private BigDecimal calculateRentalCost(Car car, RentalRequestDto rentalRequestDto){
@@ -72,17 +70,8 @@ public class RentalService {
         User ownerOfCar = car.getOwner();
 
         BigDecimal priceForRentPeriod = calculateRentalCost(car, rentalRequestDto);
-        if(priceForRentPeriod.compareTo(loggedUser.getAccountBalance())>0){
-            throw new InsufficientFundsException("Insufficient funds");
-        }
 
-        loggedUser.setAccountBalance(loggedUser.getAccountBalance().subtract(priceForRentPeriod));
-        userRepository.save(loggedUser);
-
-        ownerOfCar.setAccountBalance(ownerOfCar.getAccountBalance().add(priceForRentPeriod));
-        userRepository.save(ownerOfCar);
-
-        transactionService.createTransaction(loggedUser, car.getOwner(), priceForRentPeriod, TransactionType.RENTAL_PAYMENT);
+        paymentService.transferFundsForRental(loggedUser, ownerOfCar, priceForRentPeriod);
 
         Rental rental = new Rental();
         rental.setCar(car);

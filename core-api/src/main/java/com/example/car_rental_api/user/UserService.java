@@ -1,17 +1,15 @@
 package com.example.car_rental_api.user;
 
 import com.example.car_rental_api.exception.EmailAlreadyInUseException;
-import com.example.car_rental_api.exception.InsufficientFundsException;
 import com.example.car_rental_api.exception.UserNotFoundException;
+import com.example.car_rental_api.payment.PaymentService;
 import com.example.car_rental_api.transaction.TransactionService;
-import com.example.car_rental_api.transaction.TransactionType;
 import com.example.car_rental_api.user.dto.FundRequestDto;
 import com.example.car_rental_api.user.dto.UserRegisterDto;
 import com.example.car_rental_api.user.dto.UserResponseDto;
 import com.example.car_rental_api.user.mapper.UserMapper;
 import jakarta.transaction.Transactional;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -21,14 +19,14 @@ import java.math.BigDecimal;
 public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-    private final TransactionService transactionService;
     private final UserMapper userMapper;
+    private final PaymentService paymentService;
 
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, TransactionService transactionService, UserMapper userMapper) {
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, UserMapper userMapper, PaymentService paymentService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
-        this.transactionService = transactionService;
         this.userMapper = userMapper;
+        this.paymentService = paymentService;
     }
 
     public UserResponseDto registerUser(UserRegisterDto userRegisterDto){
@@ -51,10 +49,7 @@ public class UserService {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         User foundUser = userRepository.findByEmail(email).orElseThrow(() ->  new UserNotFoundException("User not found"));
 
-        foundUser.setAccountBalance(foundUser.getAccountBalance().add(fundRequestDto.getAmount()));
-        User savedUser = userRepository.save(foundUser);
-
-        transactionService.createTransaction(null, foundUser, fundRequestDto.getAmount(), TransactionType.DEPOSIT);
+        User savedUser = paymentService.addFundsToUserAccount(foundUser, fundRequestDto.getAmount());
 
         return userMapper.userToUserResponseDto(savedUser);
     }
@@ -63,14 +58,7 @@ public class UserService {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         User foundUser = userRepository.findByEmail(email).orElseThrow(() -> new UserNotFoundException("User not found"));
 
-        if(foundUser.getAccountBalance().compareTo(fundRequestDto.getAmount())<0){
-            throw new InsufficientFundsException("Insufficient funds");
-        }
-
-        foundUser.setAccountBalance(foundUser.getAccountBalance().subtract(fundRequestDto.getAmount()));
-        User savedUser = userRepository.save(foundUser);
-
-        transactionService.createTransaction(foundUser, null, fundRequestDto.getAmount(), TransactionType.PAYOUT);
+        User savedUser = paymentService.withdrawFundsFromUserAccount(foundUser, fundRequestDto.getAmount());
 
         return userMapper.userToUserResponseDto(savedUser);
     }
