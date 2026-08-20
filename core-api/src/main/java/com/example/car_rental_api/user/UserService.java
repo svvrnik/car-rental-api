@@ -49,7 +49,7 @@ public class UserService {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         User foundUser = userRepository.findByEmail(email).orElseThrow(() ->  new UserNotFoundException("User not found"));
 
-        User savedUser = paymentService.addFundsToUserAccount(foundUser, fundRequestDto.getAmount());
+        User savedUser = paymentService.addFundsToUserAccount(foundUser, fundRequestDto.getAmount(), "Account deposit");
 
         return userMapper.userToUserResponseDto(savedUser);
     }
@@ -58,7 +58,7 @@ public class UserService {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         User foundUser = userRepository.findByEmail(email).orElseThrow(() -> new UserNotFoundException("User not found"));
 
-        User savedUser = paymentService.withdrawFundsFromUserAccount(foundUser, fundRequestDto.getAmount());
+        User savedUser = paymentService.withdrawFundsFromUserAccount(foundUser, fundRequestDto.getAmount(), "Account withdrawal");
 
         return userMapper.userToUserResponseDto(savedUser);
     }

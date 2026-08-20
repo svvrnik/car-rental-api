@@ -181,7 +181,7 @@ public class RentalServiceTest {
 
         Mockito.when(userRepository.findByEmail("test@test.com")).thenReturn(Optional.of(mockUser));
 
-        Mockito.doThrow(new InsufficientFundsException("Insufficient funds")).when(paymentService).transferFundsForRental(Mockito.any(User.class), Mockito.any(User.class), Mockito.any(BigDecimal.class));
+        Mockito.doThrow(new InsufficientFundsException("Insufficient funds")).when(paymentService).transferFundsForRental(Mockito.any(User.class), Mockito.any(User.class), Mockito.any(BigDecimal.class), Mockito.anyString());
 
         Assertions.assertThrows(InsufficientFundsException.class, () -> {
             rentalService.rentCar(mockRental);
@@ -226,11 +226,7 @@ public class RentalServiceTest {
         Assertions.assertNotNull(result);
         Assertions.assertEquals(expectedResponse, result);
 
-        Mockito.verify(paymentService, Mockito.times(1)).transferFundsForRental(
-                Mockito.eq(mockLoggedUser),
-                Mockito.eq(mockOwner),
-                Mockito.eq(BigDecimal.valueOf(200))
-        );
+        Mockito.verify(paymentService, Mockito.times(1)).transferFundsForRental(Mockito.eq(mockLoggedUser), Mockito.eq(mockOwner), Mockito.eq(BigDecimal.valueOf(200)), Mockito.anyString());
 
         Mockito.verify(rentalRepository, Mockito.times(1)).save(Mockito.any(Rental.class));
     }

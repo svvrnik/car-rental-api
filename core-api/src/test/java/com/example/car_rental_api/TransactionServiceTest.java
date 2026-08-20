@@ -25,7 +25,7 @@ public class TransactionServiceTest {
     void createTransactionShouldSaveTransaction(){
         User mockUser = new User();
 
-        transactionService.createTransaction(mockUser, null, BigDecimal.ONE, TransactionType.DEPOSIT);
+        transactionService.createTransaction(mockUser, null, BigDecimal.ONE, TransactionType.DEPOSIT, "Transaction reference");
 
         Mockito.verify(transactionRepository, Mockito.times(1)).save(Mockito.any(Transaction.class));
     }

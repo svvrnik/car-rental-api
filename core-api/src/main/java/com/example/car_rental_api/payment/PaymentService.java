@@ -21,7 +21,7 @@ public class PaymentService {
     }
 
     @Transactional
-    public void transferFundsForRental(User from, User to, BigDecimal amount){
+    public void transferFundsForRental(User from, User to, BigDecimal amount, String reference){
         if(amount.compareTo(from.getAccountBalance()) > 0){
             throw new InsufficientFundsException("Insufficient funds");
         }
@@ -32,21 +32,21 @@ public class PaymentService {
         to.setAccountBalance(to.getAccountBalance().add(amount));
         userRepository.save(to);
 
-        transactionService.createTransaction(from, to, amount, TransactionType.RENTAL_PAYMENT);
+        transactionService.createTransaction(from, to, amount, TransactionType.RENTAL_PAYMENT, reference);
     }
 
     @Transactional
-    public User addFundsToUserAccount(User user, BigDecimal amount){
+    public User addFundsToUserAccount(User user, BigDecimal amount, String reference){
         user.setAccountBalance(user.getAccountBalance().add(amount));
         User savedUser = userRepository.save(user);
 
-        transactionService.createTransaction(null, user, amount, TransactionType.DEPOSIT);
+        transactionService.createTransaction(null, user, amount, TransactionType.DEPOSIT, reference);
 
         return savedUser;
     }
 
     @Transactional
-    public User withdrawFundsFromUserAccount(User user, BigDecimal amount){
+    public User withdrawFundsFromUserAccount(User user, BigDecimal amount, String reference){
         if(user.getAccountBalance().compareTo(amount)<0){
             throw new InsufficientFundsException("Insufficient funds");
         }
@@ -54,7 +54,7 @@ public class PaymentService {
         user.setAccountBalance(user.getAccountBalance().subtract(amount));
         User savedUser = userRepository.save(user);
 
-        transactionService.createTransaction(user, null, amount, TransactionType.PAYOUT);
+        transactionService.createTransaction(user, null, amount, TransactionType.PAYOUT, reference);
 
         return savedUser;
     }

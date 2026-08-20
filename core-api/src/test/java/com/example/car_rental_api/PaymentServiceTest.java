@@ -33,11 +33,11 @@ public class PaymentServiceTest {
         to.setAccountBalance(BigDecimal.valueOf(100));
 
         Assertions.assertThrows(InsufficientFundsException.class, () -> {
-            paymentService.transferFundsForRental(from, to, BigDecimal.valueOf(100));
+            paymentService.transferFundsForRental(from, to, BigDecimal.valueOf(100),"Reference");
         });
 
         Mockito.verify(userRepository, Mockito.never()).save(Mockito.any(User.class));
-        Mockito.verify(transactionService, Mockito.never()).createTransaction(Mockito.any(User.class), Mockito.any(User.class), Mockito.any(BigDecimal.class), Mockito.any(TransactionType.class));
+        Mockito.verify(transactionService, Mockito.never()).createTransaction(Mockito.any(User.class), Mockito.any(User.class), Mockito.any(BigDecimal.class), Mockito.any(TransactionType.class), Mockito.anyString());
     }
 
     @Test
@@ -47,14 +47,14 @@ public class PaymentServiceTest {
         from.setAccountBalance(BigDecimal.valueOf(500));
         to.setAccountBalance(BigDecimal.valueOf(100));
 
-        paymentService.transferFundsForRental(from, to, BigDecimal.valueOf(300));
+        paymentService.transferFundsForRental(from, to, BigDecimal.valueOf(300), "Transaction reference");
 
         Assertions.assertEquals(BigDecimal.valueOf(200), from.getAccountBalance());
         Assertions.assertEquals(BigDecimal.valueOf(400), to.getAccountBalance());
 
         Mockito.verify(userRepository, Mockito.times(1)).save(from);
         Mockito.verify(userRepository, Mockito.times(1)).save(to);
-        Mockito.verify(transactionService, Mockito.times(1)).createTransaction(from, to, BigDecimal.valueOf(300), TransactionType.RENTAL_PAYMENT);
+        Mockito.verify(transactionService, Mockito.times(1)).createTransaction(from, to, BigDecimal.valueOf(300), TransactionType.RENTAL_PAYMENT, "Transaction reference");
     }
 
     @Test
@@ -64,14 +64,14 @@ public class PaymentServiceTest {
 
         Mockito.when(userRepository.save(Mockito.any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        User savedUser = paymentService.addFundsToUserAccount(user, BigDecimal.valueOf(50));
+        User savedUser = paymentService.addFundsToUserAccount(user, BigDecimal.valueOf(50), "Transaction reference");
 
         Assertions.assertNotNull(savedUser);
         Assertions.assertEquals(BigDecimal.valueOf(100), savedUser.getAccountBalance());
         Assertions.assertEquals(BigDecimal.valueOf(100), user.getAccountBalance());
 
         Mockito.verify(userRepository, Mockito.times(1)).save(user);
-        Mockito.verify(transactionService, Mockito.times(1)).createTransaction(null, user, BigDecimal.valueOf(50), TransactionType.DEPOSIT);
+        Mockito.verify(transactionService, Mockito.times(1)).createTransaction(null, user, BigDecimal.valueOf(50), TransactionType.DEPOSIT, "Transaction reference");
     }
 
     @Test
@@ -80,11 +80,11 @@ public class PaymentServiceTest {
         user.setAccountBalance(BigDecimal.valueOf(50));
 
         Assertions.assertThrows(InsufficientFundsException.class, () -> {
-            paymentService.withdrawFundsFromUserAccount(user, BigDecimal.valueOf(100));
+            paymentService.withdrawFundsFromUserAccount(user, BigDecimal.valueOf(100), "Reference");
         });
 
         Mockito.verify(userRepository, Mockito.never()).save(Mockito.any(User.class));
-        Mockito.verify(transactionService, Mockito.never()).createTransaction(Mockito.any(User.class), Mockito.any(), Mockito.any(BigDecimal.class), Mockito.any(TransactionType.class));
+        Mockito.verify(transactionService, Mockito.never()).createTransaction(Mockito.any(User.class), Mockito.any(), Mockito.any(BigDecimal.class), Mockito.any(TransactionType.class), Mockito.anyString());
     }
 
     @Test
@@ -94,13 +94,13 @@ public class PaymentServiceTest {
 
         Mockito.when(userRepository.save(Mockito.any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        User savedUser = paymentService.withdrawFundsFromUserAccount(user, BigDecimal.valueOf(50));
+        User savedUser = paymentService.withdrawFundsFromUserAccount(user, BigDecimal.valueOf(50), "Transaction reference");
 
         Assertions.assertNotNull(savedUser);
         Assertions.assertEquals(BigDecimal.valueOf(150), savedUser.getAccountBalance());
         Assertions.assertEquals(BigDecimal.valueOf(150), user.getAccountBalance());
 
         Mockito.verify(userRepository, Mockito.times(1)).save(user);
-        Mockito.verify(transactionService, Mockito.times(1)).createTransaction(user, null, BigDecimal.valueOf(50), TransactionType.PAYOUT);
+        Mockito.verify(transactionService, Mockito.times(1)).createTransaction(user, null, BigDecimal.valueOf(50), TransactionType.PAYOUT, "Transaction reference");
     }
 }

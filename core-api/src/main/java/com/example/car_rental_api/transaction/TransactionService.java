@@ -13,13 +13,13 @@ public class TransactionService {
         this.transactionRepository = transactionRepository;
     }
 
-    public void createTransaction(User sender, User receiver, BigDecimal amount,TransactionType transactionType){
+    public void createTransaction(User sender, User receiver, BigDecimal amount,TransactionType transactionType, String reference){
         Transaction transaction = new Transaction();
         transaction.setReceiver(receiver);
         transaction.setSender(sender);
         transaction.setAmount(amount);
         transaction.setType(transactionType);
-
+        transaction.setReference(reference);
         transactionRepository.save(transaction);
     }
 }

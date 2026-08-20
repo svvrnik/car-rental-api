@@ -71,7 +71,7 @@ public class RentalService {
 
         BigDecimal priceForRentPeriod = calculateRentalCost(car, rentalRequestDto);
 
-        paymentService.transferFundsForRental(loggedUser, ownerOfCar, priceForRentPeriod);
+        paymentService.transferFundsForRental(loggedUser, ownerOfCar, priceForRentPeriod, "Rental: "+car.getBrand()+" "+car.getModel()+" "+car.getLicensePlate());
 
         Rental rental = new Rental();
         rental.setCar(car);
