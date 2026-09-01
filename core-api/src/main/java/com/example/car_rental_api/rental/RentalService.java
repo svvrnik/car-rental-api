@@ -4,23 +4,28 @@ import com.example.car_rental_api.car.Car;
 import com.example.car_rental_api.car.CarRepository;
 import com.example.car_rental_api.car.CarStatus;
 import com.example.car_rental_api.exception.*;
-import com.example.car_rental_api.notificaton.dto.EmailNotificationDto;
+import com.example.car_rental_api.outbox.OutboxEvent;
+import com.example.car_rental_api.outbox.OutboxRepository;
+import com.example.car_rental_api.outbox.OutboxStatus;
 import com.example.car_rental_api.payment.PaymentService;
 import com.example.car_rental_api.rental.dto.RentalRequestDto;
 import com.example.car_rental_api.rental.dto.RentalResponseDto;
+import com.example.car_rental_api.rental.event.RentalCreatedEvent;
 import com.example.car_rental_api.rental.mapper.RentalMapper;
 import com.example.car_rental_api.user.User;
 import com.example.car_rental_api.user.UserRepository;
 import jakarta.transaction.Transactional;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import tools.jackson.databind.ObjectMapper;
+
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.UUID;
 
 @Service
 public class RentalService {
@@ -28,18 +33,18 @@ public class RentalService {
     private final CarRepository carRepository;
     private final UserRepository userRepository;
     private final RentalMapper rentalMapper;
-    private final RabbitTemplate rabbitTemplate;
-    private final String companyEmail;
     private final PaymentService paymentService;
+    private final ObjectMapper objectMapper;
+    private final OutboxRepository outboxRepository;
 
-    public RentalService(RentalRepository rentalRepository, CarRepository carRepository, UserRepository userRepository, RentalMapper rentalMapper, RabbitTemplate rabbitTemplate, @Value("${app.company.email}") String companyEmail, PaymentService paymentService) {
+    public RentalService(RentalRepository rentalRepository, CarRepository carRepository, UserRepository userRepository, RentalMapper rentalMapper, PaymentService paymentService, ObjectMapper objectMapper, OutboxRepository outboxRepository) {
         this.rentalRepository = rentalRepository;
         this.carRepository = carRepository;
         this.userRepository = userRepository;
         this.rentalMapper = rentalMapper;
-        this.rabbitTemplate = rabbitTemplate;
-        this.companyEmail = companyEmail;
         this.paymentService = paymentService;
+        this.objectMapper = objectMapper;
+        this.outboxRepository = outboxRepository;
     }
 
     private BigDecimal calculateRentalCost(Car car, RentalRequestDto rentalRequestDto){
@@ -82,19 +87,40 @@ public class RentalService {
         rental.setStatus(RentalStatus.ACTIVE);
         Rental savedRental = rentalRepository.save(rental);
 
-        EmailNotificationDto emailNotificationDto = new EmailNotificationDto();
-        emailNotificationDto.setFrom(companyEmail);
-        emailNotificationDto.setTo(loggedUserEmail);
-        emailNotificationDto.setSubject("Car Rental Confirmation: " + car.getBrand() + " " + car.getModel());
-        emailNotificationDto.setMessage("Hi " + loggedUser.getFirstName() + ",\n\n" +
-                "Thank you for renting a car with us! Here are the details of your reservation:\n\n" +
-                "Car: " + car.getBrand() + " " + car.getModel() + " (License plate: " + car.getLicensePlate() + ")\n" +
-                "Start date: " + rentalRequestDto.getStartDate().toLocalDate() + "\n" +
-                "End date: " + rentalRequestDto.getEndDate().toLocalDate() + "\n" +
-                "Total cost: " + priceForRentPeriod + " PLN\n\n" +
-                "Have a safe trip!\nYour Car Rental Team");
+        //EmailNotificationDto emailNotificationDto = new EmailNotificationDto();
+        //emailNotificationDto.setFrom(companyEmail);
+        //emailNotificationDto.setTo(loggedUserEmail);
+        //emailNotificationDto.setSubject("Car Rental Confirmation: " + car.getBrand() + " " + car.getModel());
+        // emailNotificationDto.setMessage("Hi " + loggedUser.getFirstName() + ",\n\n" +
+        //        "Thank you for renting a car with us! Here are the details of your reservation:\n\n" +
+        //        "Car: " + car.getBrand() + " " + car.getModel() + " (License plate: " + car.getLicensePlate() + ")\n" +
+        //        "Start date: " + rentalRequestDto.getStartDate().toLocalDate() + "\n" +
+        //        "End date: " + rentalRequestDto.getEndDate().toLocalDate() + "\n" +
+        //        "Total cost: " + priceForRentPeriod + " PLN\n\n" +
+        //        "Have a safe trip!\nYour Car Rental Team");
 
-        rabbitTemplate.convertAndSend("emailQueue", emailNotificationDto);
+        RentalCreatedEvent event = new RentalCreatedEvent();
+        event.setEventId(UUID.randomUUID().toString());
+        event.setCarId(car.getId());
+        event.setUserId(loggedUser.getId());
+        event.setEmail(loggedUser.getEmail());
+        event.setRentalId(savedRental.getId());
+        event.setCreatedAt(LocalDateTime.now());
+        event.setCarBrand(car.getBrand());
+        event.setCarModel(car.getModel());
+        event.setLicensePlate(car.getLicensePlate());
+        event.setStartDate(rentalRequestDto.getStartDate());
+        event.setEndDate(rentalRequestDto.getEndDate());
+        event.setPriceForRentPeriod(priceForRentPeriod);
+
+        //rabbitTemplate.convertAndSend("car-rental.events","rental.created", emailNotificationDto);
+        OutboxEvent outboxEvent = new OutboxEvent();
+        outboxEvent.setEventId(event.getEventId());
+        outboxEvent.setType("RENTAL_CREATED");
+        outboxEvent.setStatus(OutboxStatus.PENDING);
+        outboxEvent.setPayload(objectMapper.writeValueAsString(event));
+
+        outboxRepository.save(outboxEvent);
 
         return rentalMapper.rentalToRentalResponseDto(savedRental);
     }

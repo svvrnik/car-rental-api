@@ -4,6 +4,8 @@ import com.example.car_rental_api.car.Car;
 import com.example.car_rental_api.car.CarRepository;
 import com.example.car_rental_api.car.CarStatus;
 import com.example.car_rental_api.exception.*;
+import com.example.car_rental_api.outbox.OutboxEvent;
+import com.example.car_rental_api.outbox.OutboxRepository;
 import com.example.car_rental_api.payment.PaymentService;
 import com.example.car_rental_api.rental.Rental;
 import com.example.car_rental_api.rental.RentalRepository;
@@ -22,7 +24,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -30,6 +31,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
+import tools.jackson.databind.ObjectMapper;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -47,11 +49,13 @@ public class RentalServiceTest {
     @Mock
     private RentalMapper rentalMapper;
     @Mock
-    private RabbitTemplate rabbitTemplate;
-    @Mock
     private PaymentService paymentService;
     @InjectMocks
     private RentalService rentalService;
+    @Mock
+    private ObjectMapper objectMapper;
+    @Mock
+    private OutboxRepository outboxRepository;
 
     @BeforeEach
     void setUpSecurity() {
@@ -220,6 +224,7 @@ public class RentalServiceTest {
         RentalResponseDto expectedResponse = new RentalResponseDto();
         Mockito.when(rentalRepository.save(Mockito.any(Rental.class))).thenAnswer(invocation -> invocation.getArgument(0));
         Mockito.when(rentalMapper.rentalToRentalResponseDto(Mockito.any(Rental.class))).thenReturn(expectedResponse);
+        Mockito.when(objectMapper.writeValueAsString(Mockito.any())).thenReturn("json");
 
         RentalResponseDto result = rentalService.rentCar(mockRental);
 
@@ -229,6 +234,8 @@ public class RentalServiceTest {
         Mockito.verify(paymentService, Mockito.times(1)).transferFundsForRental(Mockito.eq(mockLoggedUser), Mockito.eq(mockOwner), Mockito.eq(BigDecimal.valueOf(200)), Mockito.anyString());
 
         Mockito.verify(rentalRepository, Mockito.times(1)).save(Mockito.any(Rental.class));
+
+        Mockito.verify(outboxRepository, Mockito.times(1)).save(Mockito.any(OutboxEvent.class));
     }
     @Test
     void returnCarShouldThrowRentalNotFoundException() {

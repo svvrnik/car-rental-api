@@ -4,6 +4,7 @@ import static io.restassured.RestAssured.given;
 import com.example.car_rental_api.car.Car;
 import com.example.car_rental_api.car.CarRepository;
 import com.example.car_rental_api.car.CarStatus;
+import com.example.car_rental_api.outbox.OutboxRepository;
 import com.example.car_rental_api.rental.Rental;
 import com.example.car_rental_api.rental.RentalRepository;
 import com.example.car_rental_api.rental.RentalStatus;
@@ -17,12 +18,10 @@ import com.example.car_rental_api.utils.JWTUtil;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import org.junit.jupiter.api.*;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -40,9 +39,6 @@ public class RentalControllerTest {
 
     @MockitoBean
     private FileStorageService fileStorageService;
-
-    @MockitoBean
-    private RabbitTemplate rabbitTemplate;
 
     @Container
     static PostgreSQLContainer<?> postgreSQLContainer = new PostgreSQLContainer<>(
@@ -79,9 +75,13 @@ public class RentalControllerTest {
     @Autowired
     JWTUtil jwtUtil;
 
+    @Autowired
+    OutboxRepository outboxRepository;
+
     @BeforeEach
     void setUp(){
         RestAssured.baseURI = "http://localhost:"+port;
+        outboxRepository.deleteAll();
         rentalRepository.deleteAll();
         transactionRepository.deleteAll();
         carRepository.deleteAll();
@@ -134,6 +134,7 @@ public class RentalControllerTest {
                 .then()
                 .statusCode(HttpStatus.CREATED.value());
         Assertions.assertEquals(1, rentalRepository.count());
+        Assertions.assertEquals(1, outboxRepository.count());
     }
 
     @Test
