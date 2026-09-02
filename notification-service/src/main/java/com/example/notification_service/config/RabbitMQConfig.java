@@ -1,9 +1,6 @@
 package com.example.notification_service.config;
 
-import org.springframework.amqp.core.Binding;
-import org.springframework.amqp.core.BindingBuilder;
-import org.springframework.amqp.core.Queue;
-import org.springframework.amqp.core.TopicExchange;
+import org.springframework.amqp.core.*;
 import org.springframework.amqp.support.converter.JacksonJsonMessageConverter;
 import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.context.annotation.Bean;
@@ -12,8 +9,16 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class RabbitMQConfig {
     @Bean
+    public Queue deadLetterQueue(){
+        return new Queue("emailQueue.dlq", true);
+    }
+    @Bean
     public Queue emailQueue(){
-        return new Queue("emailQueue", true);
+        return QueueBuilder
+                .durable("emailQueue")
+                .withArgument("x-dead-letter-exchange","")
+                .withArgument("x-dead-letter-routing-key", "emailQueue.dlq")
+                .build();
     }
     @Bean
     public MessageConverter messageConverter(){
