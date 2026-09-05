@@ -194,6 +194,37 @@ public class RentalServiceTest {
         Mockito.verify(rentalRepository, Mockito.never()).save(Mockito.any(Rental.class));
     }
     @Test
+    void rentCarShouldThrowUserIsCarOwnerException(){
+        RentalRequestDto mockRental = new RentalRequestDto();
+        mockRental.setCarId(1L);
+        mockRental.setStartDate(LocalDateTime.now());
+        mockRental.setEndDate(LocalDateTime.now().plusDays(1));
+
+        Car mockCar = new Car();
+        mockCar.setId(1L);
+        mockCar.setStatus(CarStatus.AVAILABLE);
+        mockCar.setPricePerDay(BigDecimal.valueOf(100));
+
+        Mockito.when(carRepository.findByIdWithLock(mockRental.getCarId())).thenReturn(Optional.of(mockCar));
+
+        Mockito.when(rentalRepository.existsOverLappingRental(Mockito.anyLong(), Mockito.any(LocalDateTime.class), Mockito.any(LocalDateTime.class))).thenReturn(false);
+
+        User mockUser = new User();
+        mockUser.setEmail("test@test.com");
+        mockUser.setId(1L);
+        mockUser.setAccountBalance(BigDecimal.valueOf(200));
+
+        mockCar.setOwner(mockUser);
+
+        Mockito.when(userRepository.findByEmail("test@test.com")).thenReturn(Optional.of(mockUser));
+
+        Assertions.assertThrows(UserIsCarOwnerException.class, () -> {
+            rentalService.rentCar(mockRental);
+        });
+
+        Mockito.verify(rentalRepository, Mockito.never()).save(Mockito.any(Rental.class));
+    }
+    @Test
     void rentCarShouldSuccessfullyRentCarAndSaveData() {
         RentalRequestDto mockRental = new RentalRequestDto();
         mockRental.setCarId(1L);

@@ -74,6 +74,10 @@ public class RentalService {
 
         User ownerOfCar = car.getOwner();
 
+        if(loggedUserEmail.equals(car.getOwner().getEmail())){
+            throw new UserIsCarOwnerException("You can not rent your own vehicle");
+        }
+
         BigDecimal priceForRentPeriod = calculateRentalCost(car, rentalRequestDto);
 
         paymentService.transferFundsForRental(loggedUser, ownerOfCar, priceForRentPeriod, "Rental: "+car.getBrand()+" "+car.getModel()+" "+car.getLicensePlate());
@@ -86,18 +90,6 @@ public class RentalService {
         rental.setUser(loggedUser);
         rental.setStatus(RentalStatus.ACTIVE);
         Rental savedRental = rentalRepository.save(rental);
-
-        //EmailNotificationDto emailNotificationDto = new EmailNotificationDto();
-        //emailNotificationDto.setFrom(companyEmail);
-        //emailNotificationDto.setTo(loggedUserEmail);
-        //emailNotificationDto.setSubject("Car Rental Confirmation: " + car.getBrand() + " " + car.getModel());
-        // emailNotificationDto.setMessage("Hi " + loggedUser.getFirstName() + ",\n\n" +
-        //        "Thank you for renting a car with us! Here are the details of your reservation:\n\n" +
-        //        "Car: " + car.getBrand() + " " + car.getModel() + " (License plate: " + car.getLicensePlate() + ")\n" +
-        //        "Start date: " + rentalRequestDto.getStartDate().toLocalDate() + "\n" +
-        //        "End date: " + rentalRequestDto.getEndDate().toLocalDate() + "\n" +
-        //        "Total cost: " + priceForRentPeriod + " PLN\n\n" +
-        //        "Have a safe trip!\nYour Car Rental Team");
 
         RentalCreatedEvent event = new RentalCreatedEvent();
         event.setEventId(UUID.randomUUID().toString());
@@ -113,7 +105,6 @@ public class RentalService {
         event.setEndDate(rentalRequestDto.getEndDate());
         event.setPriceForRentPeriod(priceForRentPeriod);
 
-        //rabbitTemplate.convertAndSend("car-rental.events","rental.created", emailNotificationDto);
         OutboxEvent outboxEvent = new OutboxEvent();
         outboxEvent.setEventId(event.getEventId());
         outboxEvent.setType("RENTAL_CREATED");

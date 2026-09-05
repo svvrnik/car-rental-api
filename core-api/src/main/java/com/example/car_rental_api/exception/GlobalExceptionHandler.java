@@ -21,7 +21,7 @@ public class GlobalExceptionHandler {
         ErrorResponse errorResponse = new ErrorResponse(HttpStatus.NOT_FOUND.value(), "Not Found", ex.getMessage());
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
     }
-    @ExceptionHandler({EmailAlreadyInUseException.class, DuplicateLicensePlateException.class, CarCurrentlyRentedException.class, OverlappingRentalException.class})
+    @ExceptionHandler({EmailAlreadyInUseException.class, DuplicateLicensePlateException.class, CarCurrentlyRentedException.class, OverlappingRentalException.class, UserIsCarOwnerException.class})
     public ResponseEntity<ErrorResponse> handleConflictExceptions(RuntimeException ex) {
         ErrorResponse errorResponse = new ErrorResponse(HttpStatus.CONFLICT.value(), "Conflict", ex.getMessage());
         return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
