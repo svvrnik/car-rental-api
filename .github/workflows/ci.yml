@@ -22,3 +22,7 @@ jobs:
       - name: Run the Maven verify phase in core-api
         working-directory: ./core-api
         run: ./mvnw clean verify
+
+      - name: Run the Maven verify phase in notification-service
+        working-directory: ./notification-service
+        run: ./mvnw clean verify
