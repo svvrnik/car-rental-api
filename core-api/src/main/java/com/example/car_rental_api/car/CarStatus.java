@@ -4,6 +4,5 @@ public enum CarStatus {
     PENDING,
     AVAILABLE,
     UNAVAILABLE,
-    REJECTED,
-    RENTED
+    REJECTED
 }

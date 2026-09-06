@@ -15,4 +15,6 @@ public interface RentalRepository extends JpaRepository<Rental, Long> {
 
     @EntityGraph(attributePaths = {"car", "car.images"})
     Page<Rental> findByUserEmail(String email, Pageable pageable);
+
+    boolean existsByCarIdAndStatus(Long carId, RentalStatus status);
 }

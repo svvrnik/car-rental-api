@@ -5,6 +5,8 @@ import com.example.car_rental_api.car.dto.CarResponseDto;
 import com.example.car_rental_api.car.image.CarImage;
 import com.example.car_rental_api.car.mapper.CarMapper;
 import com.example.car_rental_api.exception.*;
+import com.example.car_rental_api.rental.RentalRepository;
+import com.example.car_rental_api.rental.RentalStatus;
 import com.example.car_rental_api.storage.FileStorageService;
 import com.example.car_rental_api.user.Role;
 import com.example.car_rental_api.user.User;
@@ -27,13 +29,17 @@ public class CarService {
     private final CarMapper carMapper;
     private final String companyEmail;
     private final FileStorageService fileStorageService;
+    private final RentalRepository rentalRepository;
+    private final List<String> ALLOWED_CONTENT_TYPES = List.of("image/jpeg", "image/png", "image/webp");
     private static final long MAX_FILE_SIZE = 10 * 1024 * 1024;
-    public CarService(CarRepository carRepository, UserRepository userRepository, CarMapper carMapper, @Value("${app.company.email}") String companyEmail, FileStorageService fileStorageService) {
+
+    public CarService(CarRepository carRepository, UserRepository userRepository, CarMapper carMapper, @Value("${app.company.email}") String companyEmail, FileStorageService fileStorageService, RentalRepository rentalRepository) {
         this.carRepository = carRepository;
         this.userRepository = userRepository;
         this.carMapper = carMapper;
         this.companyEmail = companyEmail;
         this.fileStorageService = fileStorageService;
+        this.rentalRepository = rentalRepository;
     }
 
     public CarResponseDto addCar(CarRequestDto carRequestDto, MultipartFile[] files){
@@ -68,9 +74,7 @@ public class CarService {
                         throw new InvalidFileException("File cannot be empty.");
                     }
 
-                    List<String> allowedContentTypes = List.of("image/jpeg", "image/png", "image/webp");
-
-                    if(file.getContentType()==null || !allowedContentTypes.contains(file.getContentType()) || !fileStorageService.hasValidExtension(file.getOriginalFilename())){
+                    if(file.getContentType()==null || !ALLOWED_CONTENT_TYPES.contains(file.getContentType()) || !fileStorageService.hasValidExtension(file.getOriginalFilename())){
                         throw new InvalidFileException("Only JPEG, PNG and WEBP files are allowed.");
                     }
 
@@ -139,8 +143,8 @@ public class CarService {
         if(!foundCar.getOwner().getEmail().equals(emailOfLoggedUser)){
             throw new UserIsNotCarOwnerException("You are not owner of this car");
         }
-        if(foundCar.getStatus() == CarStatus.RENTED){
-            throw new CarCurrentlyRentedException("Car is actually rented");
+        if(rentalRepository.existsByCarIdAndStatus(foundCar.getId(), RentalStatus.ACTIVE)){
+            throw new CarCurrentlyRentedException("Car has an active rental");
         }
         foundCar.setStatus(CarStatus.UNAVAILABLE);
         Car savedCar = carRepository.save(foundCar);

@@ -8,6 +8,8 @@ import com.example.car_rental_api.car.dto.CarRequestDto;
 import com.example.car_rental_api.car.dto.CarResponseDto;
 import com.example.car_rental_api.car.mapper.CarMapper;
 import com.example.car_rental_api.exception.*;
+import com.example.car_rental_api.rental.RentalRepository;
+import com.example.car_rental_api.rental.RentalStatus;
 import com.example.car_rental_api.storage.FileStorageService;
 import com.example.car_rental_api.user.User;
 import com.example.car_rental_api.user.UserRepository;
@@ -43,6 +45,8 @@ public class CarServiceTest {
     private CarMapper carMapper;
     @Mock
     private FileStorageService fileStorageService;
+    @Mock
+    private RentalRepository rentalRepository;
     @InjectMocks
     private CarService carService;
 
@@ -523,11 +527,11 @@ public class CarServiceTest {
         mockUser.setId(1L);
 
         Car mockCar = new Car();
-        mockCar.setStatus(CarStatus.RENTED);
         mockCar.setOwner(mockUser);
         mockCar.setId(1L);
 
         Mockito.when(carRepository.findById(1L)).thenReturn(Optional.of(mockCar));
+        Mockito.when(rentalRepository.existsByCarIdAndStatus(1L, RentalStatus.ACTIVE)).thenReturn(true);
 
         Assertions.assertThrows(CarCurrentlyRentedException.class, () -> {
             carService.withdrawCar(1L);
